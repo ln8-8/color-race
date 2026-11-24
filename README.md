@@ -1,5 +1,10 @@
 # Color Race — automatic daily YouTube channel
 
+> 📄 **[Privacy Policy](PRIVACY.md)** · **[Terms of Service](TERMS.md)**
+>
+> ▶️ This tool uses **YouTube API Services** (YouTube Data API v3: `videos.insert`, `thumbnails.set`) to upload original videos to its owner's own channel.
+> See the [YouTube Terms of Service](https://www.youtube.com/t/terms) and the [Google Privacy Policy](http://www.google.com/policies/privacy).
+
 Every day, with no work from you, the agent makes and schedules:
 
 | What | Format | Length | Default publish time (UTC) |
