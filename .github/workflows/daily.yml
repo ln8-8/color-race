@@ -1,0 +1,45 @@
+name: daily-shorts
+
+on:
+  schedule:
+    - cron: "17 4 * * *"   # every day 04:17 UTC; videos are then scheduled for their publish times
+  workflow_dispatch: {}     # "Run workflow" button for manual runs
+
+jobs:
+  make-and-upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: pip install -r requirements.txt
+      - name: Install 3D renderer (three.js + headless Chromium)
+        working-directory: web
+        run: |
+          npm install
+          npx playwright install --with-deps chromium
+      - name: Render + upload today's shorts
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          SHORT_TIMES_UTC: ${{ vars.SHORT_TIMES_UTC || '08:00,11:00,14:00,17:00,20:00' }}
+          LONG_TIME_UTC: ${{ vars.LONG_TIME_UTC || '16:00' }}
+          STYLES: ${{ vars.STYLES || '3d,2d,2d,3d,2d' }}
+          UPLOAD: ${{ vars.UPLOAD || '1' }}
+        run: python daily.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: shorts-${{ github.run_id }}
+          path: |
+            out/**/*.mp4
+            out/**/*.jpg
+            out/**/log.json
+          retention-days: 7
