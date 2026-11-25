@@ -1,6 +1,6 @@
 # Privacy Policy — Color Race Uploader
 
-_Last updated: November 24, 2026_
+_Last updated: November 25, 2026_
 
 **Color Race Uploader uses YouTube API Services.**
 By using it you also agree to the [YouTube Terms of Service](https://www.youtube.com/t/terms).
@@ -12,13 +12,21 @@ uploads them to the owner's own YouTube channel through the YouTube Data API v3.
 
 ## 2. What data it accesses (YouTube API Services)
 - It uses OAuth 2.0 to sign in **only with the channel owner's own Google account**.
-- Scopes used: `youtube.upload` (to upload videos) and `youtube.force-ssl` (to set a video thumbnail).
-- API methods used: `videos.insert` and `thumbnails.set`. **Nothing else.**
-- It does **not** read, collect or analyse any YouTube data: no comments, viewers, subscribers or analytics, and no data about other users.
+- Scopes used: `youtube.upload` (to upload videos), `youtube.force-ssl` (to set thumbnails and to read and reply to
+  comments on the owner's own videos) and `yt-analytics.readonly` (to read the owner's own channel statistics).
+- API methods used: `videos.insert`, `thumbnails.set`, `videos.list`, `channels.list`, `playlistItems.list`,
+  `commentThreads.list`, `comments.insert` (replies), `commentThreads.insert`, and YouTube Analytics `reports.query`.
+- **Comments:** the tool reads public comments on the owner's own videos only, so it can post a short reply as the channel.
+  The comment text is used once to write the reply and is **not stored**. Only the comment ID is kept, to avoid replying twice.
+  No commenter names, profiles or other personal data are stored.
+- **Statistics:** it reads views, likes, comment counts and average view percentage of the owner's own videos. It uses
+  them to decide which kinds of videos to make next.
 
 ## 3. How data is stored
-- The only stored item is the OAuth refresh token. It is kept as an **encrypted secret** in the owner's GitHub Actions settings and is never written to files or logs.
-- The app uses no database, cookies or tracking, and no analytics.
+- The OAuth refresh token is kept as an **encrypted secret** in the owner's GitHub Actions settings and is never written to files or logs.
+- The tool's memory (`data/` folder) contains only the owner's own video IDs, their statistics and replied comment IDs.
+  It contains no personal data about viewers. Data older than 30 days is no longer refreshed.
+- The tool uses no cookies, tracking or third-party analytics.
 
 ## 4. Sharing
 No data is shared with, sold to, or disclosed to any third party.

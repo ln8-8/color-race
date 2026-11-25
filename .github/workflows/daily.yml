@@ -5,6 +5,13 @@ on:
     - cron: "17 4 * * *"   # every day 04:17 UTC; videos are then scheduled for their publish times
   workflow_dispatch: {}     # "Run workflow" button for manual runs
 
+permissions:
+  contents: write            # lets the agent save its memory (data/) back to the repo
+
+concurrency:
+  group: agent-memory        # never run at the same time as the engagement agent
+  cancel-in-progress: false
+
 jobs:
   make-and-upload:
     runs-on: ubuntu-latest
@@ -29,11 +36,22 @@ jobs:
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
           YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
           YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
-          SHORT_TIMES_UTC: ${{ vars.SHORT_TIMES_UTC || '08:00,11:00,14:00,17:00,20:00' }}
+          SHORT_TIMES_UTC: ${{ vars.SHORT_TIMES_UTC || '09:00,13:00,17:00,21:00' }}
           LONG_TIME_UTC: ${{ vars.LONG_TIME_UTC || '16:00' }}
           STYLES: ${{ vars.STYLES || '3d,2d,2d,3d,2d' }}
           UPLOAD: ${{ vars.UPLOAD || '1' }}
+          QUOTA_UNITS: ${{ vars.QUOTA_UNITS || '10000' }}
         run: python daily.py
+      - name: Save agent memory
+        if: always()
+        run: |
+          git config user.name "color-race-agent"
+          git config user.email "agent@users.noreply.github.com"
+          git add data || true
+          git commit -m "agent memory: daily run $(date -u +%F)" || echo "nothing to save"
+          git pull --rebase --autostash || true
+          git push || echo "push failed"
+
       - uses: actions/upload-artifact@v4
         if: always()
         with:

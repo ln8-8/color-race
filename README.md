@@ -2,7 +2,7 @@
 
 > 📄 **[Privacy Policy](PRIVACY.md)** · **[Terms of Service](TERMS.md)**
 >
-> ▶️ This tool uses **YouTube API Services** (YouTube Data API v3: `videos.insert`, `thumbnails.set`) to upload original videos to its owner's own channel.
+> ▶️ This tool uses **YouTube API Services** (YouTube Data API v3 + YouTube Analytics API) to upload original videos to its owner's own channel, reply to comments on those videos and read the channel's own statistics.
 > See the [YouTube Terms of Service](https://www.youtube.com/t/terms) and the [Google Privacy Policy](http://www.google.com/policies/privacy).
 
 Every day, with no work from you, the agent makes and schedules:
@@ -23,6 +23,11 @@ The 2 daily 3D Shorts use different cameras: the 1st uses the **behind-the-runne
 - **Each race is new:** the colors, events, camera cuts and winner are different every time.
 
 **Tournament:** 12 colors race in 3 heats of 4, each heat in a different place. The heat winners plus 1 lucky loser race in the FINAL, and one becomes CHAMPION. The upload includes YouTube chapters and a custom thumbnail.
+
+## The agent's brain
+- **Every 3 hours** (`engage.py`, workflow `engage`) it refreshes the views, likes and retention of recent videos, replies to new comments using each video's race results (for example, if a viewer picked BLUE, it says how BLUE did), and updates **`data/report.md`**.
+- **Every day** (`daily.py`) it chooses the character, place, 2D/3D style and camera for each Short. It mostly repeats what got the most views (from `data/videos.json`) and keeps exploring about 35% of the time (`EXPLORE` variable).
+- **Quota-safe:** it always keeps enough YouTube quota for the next day's 6 uploads. With the default 10,000 units/day it can send ~5 replies a day; set the variable `QUOTA_UNITS` to `20000` once Google approves more quota, and it can send ~200 a day.
 
 ## Files
 | File | Purpose |

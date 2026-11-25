@@ -1,0 +1,42 @@
+name: engage
+
+on:
+  schedule:
+    - cron: "41 */3 * * *"   # every 3 hours: stats, analytics, comment replies, report
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agent-memory
+  cancel-in-progress: false
+
+jobs:
+  engage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install google-api-python-client google-auth
+      - name: Stats, analytics and comment replies
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          QUOTA_UNITS: ${{ vars.QUOTA_UNITS || '10000' }}
+          REPLY: ${{ vars.REPLY || '1' }}
+          MAX_REPLIES: ${{ vars.MAX_REPLIES || '25' }}
+        run: python engage.py
+      - name: Save agent memory
+        if: always()
+        run: |
+          git config user.name "color-race-agent"
+          git config user.email "agent@users.noreply.github.com"
+          git add data || true
+          git commit -m "agent memory: engage $(date -u +%FT%H:%M)" || echo "nothing to save"
+          git pull --rebase --autostash || true
+          git push || echo "push failed"
