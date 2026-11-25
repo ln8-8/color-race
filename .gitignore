@@ -1,0 +1,6 @@
+out/
+client_secret.json
+__pycache__/
+web/node_modules/
+*.zip
+sample*.mp4
