@@ -1,10 +1,8 @@
 name: daily-shorts
 
 on:
-  # PAUSED by the owner: no automatic daily videos until re-enabled.
-  # To resume, remove the "#" in front of the two schedule lines below.
-  # schedule:
-  #   - cron: "17 4 * * *"   # every day 04:17 UTC; videos are then scheduled for their publish times
+  schedule:
+    - cron: "17 4 * * *"   # every day 04:17 UTC; videos are then scheduled for their publish times
   workflow_dispatch: {}     # "Run workflow" button for manual runs
 
 permissions:
