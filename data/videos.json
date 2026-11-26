@@ -4,8 +4,8 @@
   "kind": "short",
   "published": "2026-11-25T17:00:12Z",
   "stats": {
-   "views": 4,
-   "likes": 1,
+   "views": 10,
+   "likes": 3,
    "comments": 0
   },
   "title": "Meteors vs Tiny Cars — Pick Your Survivor! ☄️ #shorts"
@@ -15,7 +15,7 @@
   "kind": "short",
   "published": "2026-11-25T14:00:12Z",
   "stats": {
-   "views": 1063,
+   "views": 1058,
    "likes": 11,
    "comments": 0
   },
@@ -26,8 +26,8 @@
   "kind": "short",
   "published": "2026-11-25T11:00:28Z",
   "stats": {
-   "views": 1083,
-   "likes": 13,
+   "views": 1093,
+   "likes": 14,
    "comments": 0
   },
   "title": "Tiny Cars vs Lightning & Traps — Pick One! ⚡ #shorts"
@@ -37,9 +37,9 @@
   "kind": "short",
   "published": "2026-11-25T08:00:15Z",
   "stats": {
-   "views": 1080,
+   "views": 1084,
    "likes": 8,
-   "comments": 1
+   "comments": 2
   },
   "title": "Choose Your Tiny Cars… Who Makes It? 😱 #shorts"
  },
@@ -48,7 +48,7 @@
   "kind": "long",
   "published": "2026-11-24T21:17:23Z",
   "stats": {
-   "views": 34,
+   "views": 42,
    "likes": 4,
    "comments": 0
   },
@@ -59,7 +59,7 @@
   "kind": "short",
   "published": "2026-11-24T21:13:29Z",
   "stats": {
-   "views": 21,
+   "views": 22,
    "likes": 4,
    "comments": 0
   },
@@ -70,7 +70,7 @@
   "kind": "short",
   "published": "2026-11-24T21:13:13Z",
   "stats": {
-   "views": 22,
+   "views": 24,
    "likes": 4,
    "comments": 0
   },
@@ -81,7 +81,7 @@
   "kind": "short",
   "published": "2026-11-24T20:36:41Z",
   "stats": {
-   "views": 1068,
+   "views": 1199,
    "likes": 13,
    "comments": 0
   },
@@ -92,9 +92,9 @@
   "kind": "short",
   "published": "2026-11-24T20:36:05Z",
   "stats": {
-   "views": 1134,
-   "likes": 11,
-   "comments": 1
+   "views": 1199,
+   "likes": 12,
+   "comments": 2
   },
   "title": "Meteors vs Ducks — Pick Your Survivor! ☄️ #shorts"
  },
@@ -103,8 +103,8 @@
   "kind": "short",
   "published": "2026-11-24T19:51:50Z",
   "stats": {
-   "views": 1136,
-   "likes": 10,
+   "views": 1238,
+   "likes": 11,
    "comments": 0
   },
   "title": "Pick a Color! Only ONE Survives 🏁 #shorts"
@@ -113,7 +113,7 @@
   "video_id": "2ko5WxDZjfg",
   "kind": "long",
   "title": "COLOR RACE TOURNAMENT #330 🏆 12 Marbles, Only ONE Champion!",
-  "published": "2026-11-26T16:00:00Z",
+  "published": "2026-11-26T16:00:23Z",
   "character": "marble",
   "champion": "LIME",
   "entrants": [
@@ -130,13 +130,18 @@
    "RED",
    "YELLOW"
   ],
-  "winner": "LIME"
+  "winner": "LIME",
+  "stats": {
+   "views": 1,
+   "likes": 0,
+   "comments": 0
+  }
  },
  {
   "video_id": "uibepjZ3cF4",
   "kind": "short",
   "title": "Only One Makes It Out Alive… Pick a Color! 💥 #shorts",
-  "published": "2026-11-26T09:00:00Z",
+  "published": "2026-11-26T09:00:05Z",
   "style": "2d",
   "world": "snow",
   "character": "person",
@@ -171,13 +176,18 @@
    "GREEN",
    "PURPLE",
    "RED"
-  ]
+  ],
+  "stats": {
+   "views": 607,
+   "likes": 7,
+   "comments": 0
+  }
  },
  {
   "video_id": "11HyiFtxYSY",
   "kind": "short",
   "title": "Choose Your Ducks… Who Makes It? 😱 #shorts",
-  "published": "2026-11-26T13:00:00Z",
+  "published": "2026-11-26T13:00:24Z",
   "style": "3d",
   "world": "city",
   "character": "duck",
@@ -213,13 +223,18 @@
    "WHITE",
    "BLACK",
    "ORANGE"
-  ]
+  ],
+  "stats": {
+   "views": 291,
+   "likes": 3,
+   "comments": 0
+  }
  },
  {
   "video_id": "zaXplQqnKnI",
   "kind": "short",
   "title": "Only One Makes It Out Alive… Pick a Color! 💥 #shorts",
-  "published": "2026-11-26T17:00:00Z",
+  "published": "2026-11-26T17:00:35Z",
   "style": "2d",
   "world": "forest",
   "character": "car",
@@ -245,13 +260,18 @@
    "ORANGE",
    "GREEN",
    "YELLOW"
-  ]
+  ],
+  "stats": {
+   "views": 0,
+   "likes": 0,
+   "comments": 0
+  }
  },
  {
   "video_id": "gEd0EjxN8kk",
   "kind": "short",
   "title": "Comment Your Color BEFORE the Race! 🏃 #shorts",
-  "published": "2026-11-26T21:00:00Z",
+  "published": "2026-11-26T05:20:24Z",
   "style": "2d",
   "world": "volcano",
   "character": "marble",
@@ -286,6 +306,11 @@
    "CYAN",
    "PINK",
    "GREEN"
-  ]
+  ],
+  "stats": {
+   "views": 1,
+   "likes": 0,
+   "comments": 0
+  }
  }
 ]
