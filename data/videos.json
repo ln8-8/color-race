@@ -108,5 +108,184 @@
    "comments": 0
   },
   "title": "Pick a Color! Only ONE Survives 🏁 #shorts"
+ },
+ {
+  "video_id": "2ko5WxDZjfg",
+  "kind": "long",
+  "title": "COLOR RACE TOURNAMENT #330 🏆 12 Marbles, Only ONE Champion!",
+  "published": "2026-11-26T16:00:00Z",
+  "character": "marble",
+  "champion": "LIME",
+  "entrants": [
+   "BLUE",
+   "CYAN",
+   "ORANGE",
+   "LIME",
+   "PURPLE",
+   "BLACK",
+   "GREEN",
+   "BROWN",
+   "PINK",
+   "WHITE",
+   "RED",
+   "YELLOW"
+  ],
+  "winner": "LIME"
+ },
+ {
+  "video_id": "uibepjZ3cF4",
+  "kind": "short",
+  "title": "Only One Makes It Out Alive… Pick a Color! 💥 #shorts",
+  "published": "2026-11-26T09:00:00Z",
+  "style": "2d",
+  "world": "snow",
+  "character": "person",
+  "winner": "GREEN",
+  "eliminated": [
+   [
+    "PURPLE",
+    "TRAP"
+   ],
+   [
+    "CYAN",
+    "METEOR"
+   ],
+   [
+    "BLUE",
+    "LIGHTNING"
+   ],
+   [
+    "RED",
+    "LIGHTNING"
+   ],
+   [
+    "ORANGE",
+    "TRAP"
+   ]
+  ],
+  "runners": [
+   "CYAN",
+   "YELLOW",
+   "ORANGE",
+   "BLUE",
+   "GREEN",
+   "PURPLE",
+   "RED"
+  ]
+ },
+ {
+  "video_id": "11HyiFtxYSY",
+  "kind": "short",
+  "title": "Choose Your Ducks… Who Makes It? 😱 #shorts",
+  "published": "2026-11-26T13:00:00Z",
+  "style": "3d",
+  "world": "city",
+  "character": "duck",
+  "camera": "behind",
+  "winner": "GREEN",
+  "eliminated": [
+   [
+    "PINK",
+    "LIGHTNING"
+   ],
+   [
+    "BLACK",
+    "METEOR"
+   ],
+   [
+    "BLUE",
+    "MINE"
+   ],
+   [
+    "WHITE",
+    "BOULDER"
+   ],
+   [
+    "ORANGE",
+    "PIT"
+   ]
+  ],
+  "runners": [
+   "CYAN",
+   "BLUE",
+   "PINK",
+   "GREEN",
+   "WHITE",
+   "BLACK",
+   "ORANGE"
+  ]
+ },
+ {
+  "video_id": "zaXplQqnKnI",
+  "kind": "short",
+  "title": "Only One Makes It Out Alive… Pick a Color! 💥 #shorts",
+  "published": "2026-11-26T17:00:00Z",
+  "style": "2d",
+  "world": "forest",
+  "character": "car",
+  "winner": "ORANGE",
+  "eliminated": [
+   [
+    "GREEN",
+    "BOMB"
+   ],
+   [
+    "WHITE",
+    "METEOR"
+   ],
+   [
+    "YELLOW",
+    "METEOR"
+   ]
+  ],
+  "runners": [
+   "RED",
+   "WHITE",
+   "BLUE",
+   "ORANGE",
+   "GREEN",
+   "YELLOW"
+  ]
+ },
+ {
+  "video_id": "gEd0EjxN8kk",
+  "kind": "short",
+  "title": "Comment Your Color BEFORE the Race! 🏃 #shorts",
+  "published": "2026-11-26T21:00:00Z",
+  "style": "2d",
+  "world": "volcano",
+  "character": "marble",
+  "winner": "GREEN",
+  "eliminated": [
+   [
+    "RED",
+    "BOMB"
+   ],
+   [
+    "CYAN",
+    "LIGHTNING"
+   ],
+   [
+    "PURPLE",
+    "LIGHTNING"
+   ],
+   [
+    "ORANGE",
+    "LIGHTNING"
+   ],
+   [
+    "PINK",
+    "TRAP"
+   ]
+  ],
+  "runners": [
+   "YELLOW",
+   "RED",
+   "ORANGE",
+   "PURPLE",
+   "CYAN",
+   "PINK",
+   "GREEN"
+  ]
  }
 ]
