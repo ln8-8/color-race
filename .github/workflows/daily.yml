@@ -41,6 +41,7 @@ jobs:
           SHORT_TIMES_UTC: ${{ vars.SHORT_TIMES_UTC || '08:00,11:00,14:00,17:00,20:00' }}
           LONG_TIMES_UTC: ${{ vars.LONG_TIMES_UTC || '15:00,19:00' }}
           LONG_FORMAT: ${{ vars.LONG_FORMAT || 'factory' }}
+          SHORT_FORMAT: ${{ vars.SHORT_FORMAT || 'countries' }}
           STYLES: ${{ vars.STYLES || '3d,2d,2d,3d,2d' }}
           UPLOAD: ${{ vars.UPLOAD || '1' }}
           QUOTA_UNITS: ${{ vars.QUOTA_UNITS || '10000' }}

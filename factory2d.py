@@ -41,12 +41,47 @@ LAYOUTS = {
 }
 L = dict(LAYOUTS["portrait"])
 
+# Places: purely visual (physics never depends on the place, so a pre-tested seed renders the same race anywhere).
+# bg = top/bottom gradient, rail = machine colour, stripe = funnel stripes, pit = what eliminates the losers.
+THEMES = {
+    "factory": dict(title="Factory", pit="SHREDDER", bg=((34, 38, 48), (52, 52, 58)), rail=(150, 158, 175),
+                    stripe=((250, 200, 30), (30, 30, 34)), bump=(230, 50, 70), pit_bg=(30, 12, 12), pit_fx="gears",
+                    pit_col=(255, 70, 60), deco="pipes", spark=(255, 200, 40)),
+    "space": dict(title="Space Station", pit="BLACK HOLE", bg=((8, 6, 26), (30, 14, 56)), rail=(90, 220, 255),
+                  stripe=((90, 220, 255), (20, 24, 60)), bump=(255, 80, 200), pit_bg=(4, 2, 10), pit_fx="vortex",
+                  pit_col=(190, 120, 255), deco="stars", spark=(200, 160, 255)),
+    "ice": dict(title="Ice Cave", pit="FREEZER", bg=((120, 190, 230), (40, 90, 150)), rail=(225, 245, 255),
+                stripe=((240, 250, 255), (70, 150, 210)), bump=(80, 170, 255), pit_bg=(20, 60, 110), pit_fx="spikes",
+                pit_col=(200, 240, 255), deco="snow", spark=(230, 250, 255)),
+    "jungle": dict(title="Jungle Temple", pit="PIRANHA RIVER", bg=((30, 90, 50), (16, 50, 30)), rail=(150, 105, 60),
+                   stripe=((230, 190, 90), (90, 60, 30)), bump=(240, 120, 40), pit_bg=(20, 60, 70), pit_fx="water",
+                   pit_col=(120, 255, 160), deco="vines", spark=(120, 220, 255)),
+    "volcano": dict(title="Volcano", pit="LAVA", bg=((60, 18, 14), (24, 10, 10)), rail=(120, 110, 105),
+                    stripe=((255, 120, 20), (40, 30, 28)), bump=(255, 90, 30), pit_bg=(120, 30, 0), pit_fx="lava",
+                    pit_col=(255, 200, 60), deco="embers", spark=(255, 150, 30)),
+    "candy": dict(title="Candy Factory", pit="CHOCOLATE", bg=((255, 170, 210), (200, 120, 200)), rail=(255, 250, 250),
+                  stripe=((255, 60, 110), (255, 250, 250)), bump=(120, 220, 255), pit_bg=(90, 45, 20), pit_fx="water",
+                  pit_col=(255, 230, 200), deco="sprinkles", spark=(255, 240, 120)),
+    "sea": dict(title="Deep Sea", pit="SHARK TANK", bg=((20, 110, 160), (6, 30, 70)), rail=(255, 140, 110),
+                stripe=((255, 200, 80), (20, 60, 110)), bump=(255, 210, 60), pit_bg=(4, 20, 50), pit_fx="spikes",
+                pit_col=(120, 220, 255), deco="bubbles", spark=(180, 240, 255)),
+    "neon": dict(title="Neon City", pit="ZAPPER", bg=((16, 8, 36), (50, 10, 60)), rail=(255, 60, 200),
+                 stripe=((60, 255, 220), (30, 10, 50)), bump=(255, 230, 50), pit_bg=(10, 4, 24), pit_fx="zap",
+                 pit_col=(60, 255, 220), deco="skyline", spark=(255, 255, 120)),
+}
+THEME_NAMES = list(THEMES)
+T = dict(THEMES["factory"])
+
 
 def font(size):
     return ImageFont.truetype(FONT, max(1, int(size)))
 
 
-def text_c(d, xy, s, size, fill, stroke=6, sf=OL, anchor="mm"):
+def text_c(d, xy, s, size, fill, stroke=6, sf=OL, anchor="mm", max_w=None):
+    if max_w:                                            # shrink long text so it always fits the screen
+        w = font(size).getlength(s) + 2 * stroke
+        if w > max_w:
+            size = size * max_w / w
     d.text(xy, s, font=font(size), fill=fill, anchor=anchor, stroke_width=stroke, stroke_fill=sf)
 
 
@@ -150,13 +185,21 @@ class Level:
         self.funnel = [seg(a, b, 9, fr=0.3, store=False, obstacle=False) for a, b in pts]
         self.hold = seg((X0, L["HOLD_Y"]), (X1, L["HOLD_Y"]), 7, store=False, obstacle=False)
         self.closed = []
-        kinds = ["pegs", "paddles", "rails", "belts", "wheels", "bumpers", "flippers", "splitters"]
+        kinds = ["pegs", "paddles", "rails", "belts", "wheels", "bumpers", "flippers", "splitters", "spinners", "ramps"]
         rng.shuffle(kinds)
         self.kinds = kinds[:2]
+        low = L["HOLD_Y"]
         for kind, (y0, y1) in zip(self.kinds, L["BANDS"]):
             y1 = min(y1, L["FUN_Y"] - 2 * r - 60)          # always leave a full ball-height of space above the funnel
+            y0 = max(y0, low + 2 * r + 50)                 # ...and below the section above (no wedge between them)
             if y1 - y0 >= 90:
+                ns, nk = len(self.statics), len(self.kin)
                 self._build(kind, y0, y1, rng)
+                ys = [max(a[1], b[1]) + rad for a, b, rad in self.statics[ns:]]
+                ys += [item[1].position.y + (item[2] if item[0] != "flipper" else item[2] * math.sin(math.radians(40)))
+                       for item in self.kin[nk:]]
+                ys += [y + 38 for _, y in self.bumpers] + [y + 13 for _, y in self.pegs]
+                low = max([low] + ys)
 
     # every builder keeps a free lane of at least 2r+44 next to walls and at the ends of rails
     def _build(self, kind, y0, y1, rng):
@@ -178,7 +221,9 @@ class Level:
                     x += sp
         elif kind in ("rails", "belts", "flippers"):
             # herringbone: short sloped rails from alternating walls, each ending in a free lane
-            seg_len = min(width * 0.48, 560)
+            seg_len = min(width * 0.48, 560, (y1 - y0 - 10) / math.tan(math.radians(40 if kind == "flippers" else 22)))
+            if seg_len < 4 * r:
+                return
             dy = seg_len * math.tan(SLOPE)
             rows = max(1, int((y1 - y0) / (dy + 2 * r + 30)))
             for j in range(rows):
@@ -248,6 +293,45 @@ class Level:
                     self.space.add(c)
                     self.obstacles.append(c)
                     self.bumpers.append((x, y))
+        elif kind == "spinners":
+            # small 3-arm rotors in a staggered row, a free lane around every one
+            R = min(r + 40, (y1 - y0) / 2 - 15, 110)
+            step = 2 * R + lane
+            cols = max(1, int((width - lane) // step))
+            x_first = X0 + (width - (cols * 2 * R + (cols - 1) * lane)) / 2 + R
+            rows = [((y0 + y1) / 2 if (y1 - y0) < 4 * R + 2 * r + 60 else y0 + R + 10, [x_first + k * step for k in range(cols)])]
+            y2 = rows[0][0] + 2 * R + 2 * r + 50
+            if y2 + R < y1 and cols > 1:
+                rows.append((y2, [x_first + (k + 0.5) * step for k in range(cols - 1)]))
+            for j, (y, xs) in enumerate(rows):
+                for k, x in enumerate(xs):
+                    b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+                    b.position = (x, y)
+                    b.angular_velocity = rng.uniform(1.8, 2.8) * (1 if (j + k) % 2 else -1)
+                    self.space.add(b)
+                    for a3 in range(3):
+                        ang = a3 * 2 * math.pi / 3
+                        sh = pymunk.Segment(b, (0, 0), (R * math.cos(ang), R * math.sin(ang)), 8)
+                        sh.elasticity, sh.friction = 0.5, 0.3
+                        self.space.add(sh)
+                        self.obstacles.append(sh)
+                    self.kin.append(("spinner", b, R, 3, 0))
+        elif kind == "ramps":
+            # short free-standing sloped ramps in a staggered pattern; both ends are open lanes
+            ramp = min(260, (width - 3 * lane) / 2)
+            if ramp < 80:
+                return
+            dy = ramp * math.tan(SLOPE)
+            rows = max(1, int((y1 - y0) / (dy + 2 * r + 40)))
+            for j in range(rows):
+                y = y0 + 10 + j * (y1 - y0) / rows
+                sgn = 1 if (j + rng.randrange(2)) % 2 else -1
+                n_r = max(1, int((width - lane) // (ramp + lane)))
+                gap = (width - n_r * ramp) / (n_r + 1)
+                for k in range(n_r):
+                    xa = X0 + gap + k * (ramp + gap)
+                    a, b = ((xa, y), (xa + ramp, y + dy)) if sgn > 0 else ((xa, y + dy), (xa + ramp, y))
+                    self.seg(a, b, 8, fr=0.25)
         elif kind == "splitters":
             # roof-shaped deflectors (apex up). Every gap (roof-roof and roof-wall) is a full free lane,
             # so there is never a valley narrower than a ball.
@@ -296,23 +380,85 @@ class Level:
 
 
 # ---------------------------------------------------------------- drawing
+def _mix(a, b, t):
+    return tuple(int(a[k] + (b[k] - a[k]) * t) for k in range(3))
+
+
 def factory_background(seed):
     W, H = L["W"], L["H"]
     img = Image.new("RGB", (W, H))
     d = ImageDraw.Draw(img)
+    c0, c1 = T["bg"]
     for y in range(H):
-        t = y / H
-        d.line([(0, y), (W, y)], fill=(int(34 + 18 * t), int(38 + 14 * t), int(48 + 10 * t)))
+        d.line([(0, y), (W, y)], fill=_mix(c0, c1, y / H))
     r = np.random.default_rng(seed)
-    for k in range(int(W / 120)):
-        x = int(r.uniform(0, W))
-        d.rectangle([x - 14, L["HUD"], x + 14, H], fill=(46, 52, 64))
-        for y in range(L["HUD"] + 30, H, 160):
-            d.rectangle([x - 20, y, x + 20, y + 14], fill=(58, 64, 78))
-    for x in range(30, W, 120):
-        for y in range(L["HUD"] + 40, H, 200):
-            d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=(70, 76, 92))
-    d.rectangle([0, 0, W, L["HUD"]], fill=(20, 22, 30))
+    soft = lambda k: _mix(c0, (255, 255, 255), k) if sum(c0) < 380 else _mix(c0, (0, 0, 0), k)   # noqa: E731
+    top, deco = L["HUD"], T["deco"]
+    if deco == "pipes":
+        for k in range(int(W / 120)):
+            x = int(r.uniform(0, W))
+            d.rectangle([x - 14, top, x + 14, H], fill=soft(0.08))
+            for y in range(top + 30, H, 160):
+                d.rectangle([x - 20, y, x + 20, y + 14], fill=soft(0.14))
+        for x in range(30, W, 120):
+            for y in range(top + 40, H, 200):
+                d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=soft(0.2))
+    elif deco == "stars":
+        px, py, pr = r.uniform(0.15, 0.85) * W, r.uniform(top + 200, H * 0.6), r.uniform(90, 160)
+        d.ellipse([px - pr, py - pr, px + pr, py + pr], fill=(70, 50, 130))
+        d.ellipse([px - pr * 0.8, py - pr * 0.9, px + pr * 0.6, py + pr * 0.3], fill=(100, 80, 170))
+        d.ellipse([px - pr * 1.7, py - pr * 0.25, px + pr * 1.7, py + pr * 0.25], outline=(170, 150, 230), width=6)
+        for _ in range(int(W * H / 9000)):
+            x, y, s_ = r.uniform(0, W), r.uniform(top, H), r.uniform(1, 3.2)
+            d.ellipse([x - s_, y - s_, x + s_, y + s_], fill=(255, 255, int(r.uniform(200, 255))))
+    elif deco == "snow":
+        for x in range(0, W, 70):
+            ln = r.uniform(30, 110)
+            d.polygon([(x, top), (x + 34, top), (x + 17, top + ln)], fill=(235, 248, 255))
+        for _ in range(int(W * H / 14000)):
+            x, y, s_ = r.uniform(0, W), r.uniform(top, H), r.uniform(2, 6)
+            d.ellipse([x - s_, y - s_, x + s_, y + s_], fill=(245, 252, 255))
+    elif deco == "vines":
+        for k in range(int(W / 200)):
+            x0 = r.uniform(0, W)
+            for y in range(top, int(top + r.uniform(0.3, 0.8) * (H - top)), 44):
+                x = x0 + 30 * math.sin(y / 90 + k)
+                d.ellipse([x - 16, y - 8, x + 16, y + 8], fill=(40 + int(r.uniform(0, 40)), 130 + int(r.uniform(0, 60)), 50))
+        for x in range(0, W, 160):
+            for y in range(top + 80, H, 220):
+                d.rectangle([x, y, x + 150, y + 100], outline=soft(0.07), width=4)
+    elif deco == "embers":
+        for k in range(6):
+            x = r.uniform(0, W)
+            d.polygon([(x - 300, H), (x, H * r.uniform(0.45, 0.7)), (x + 300, H)], fill=soft(0.06))
+        for _ in range(int(W * H / 12000)):
+            x, y, s_ = r.uniform(0, W), r.uniform(top, H), r.uniform(1.5, 4)
+            d.ellipse([x - s_, y - s_, x + s_, y + s_], fill=(255, int(r.uniform(90, 200)), 30))
+    elif deco == "sprinkles":
+        cols = [(255, 80, 120), (120, 220, 255), (255, 240, 120), (140, 255, 160), (255, 255, 255)]
+        for _ in range(int(W * H / 5000)):
+            x, y, a = r.uniform(0, W), r.uniform(top, H), r.uniform(0, math.pi)
+            d.line([(x, y), (x + 14 * math.cos(a), y + 14 * math.sin(a))], fill=cols[int(r.uniform(0, 5))], width=6)
+    elif deco == "bubbles":
+        for k in range(int(W / 110)):
+            x = r.uniform(0, W)
+            for y in range(H, top + 300, -30):
+                xx = x + 25 * math.sin(y / 60 + k)
+                d.line([(xx, y), (xx, y - 26)], fill=(20, 120 + k % 40, 80), width=10)
+        for _ in range(int(W * H / 10000)):
+            x, y, s_ = r.uniform(0, W), r.uniform(top, H), r.uniform(4, 14)
+            d.ellipse([x - s_, y - s_, x + s_, y + s_], outline=(170, 230, 255), width=2)
+    elif deco == "skyline":
+        x = 0
+        while x < W:
+            bw, bh = r.uniform(70, 160), r.uniform(H * 0.2, H * 0.6)
+            d.rectangle([x, H - bh, x + bw, H], fill=(28, 14, 50))
+            for wy in range(int(H - bh + 20), H, 34):
+                for wx in range(int(x + 12), int(x + bw - 12), 26):
+                    if r.uniform() < 0.4:
+                        d.rectangle([wx, wy, wx + 12, wy + 16], fill=[(255, 60, 200), (60, 255, 220), (255, 230, 80)][int(r.uniform(0, 3))])
+            x += bw + 6
+    d.rectangle([0, 0, W, top], fill=_mix(c0, (0, 0, 0), 0.45))
     return img
 
 
@@ -323,10 +469,11 @@ def hazard_line(d, a, b, w):
     for k in range(n):
         p0 = (a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n)
         p1 = (a[0] + (b[0] - a[0]) * (k + 1) / n, a[1] + (b[1] - a[1]) * (k + 1) / n)
-        d.line([p0, p1], fill=(250, 200, 30) if k % 2 == 0 else (30, 30, 34), width=int(w))
+        d.line([p0, p1], fill=T["stripe"][k % 2], width=int(w))
 
 
-def metal_line(d, a, b, w, col=(150, 158, 175)):
+def metal_line(d, a, b, w, col=None):
+    col = col or T["rail"]
     d.line([a, b], fill=OL, width=int(w + 8))
     d.line([a, b], fill=col, width=int(w))
     d.line([(a[0], a[1] - w * 0.2), (b[0], b[1] - w * 0.2)], fill=tuple(min(255, c + 50) for c in col), width=max(2, int(w * 0.3)))
@@ -343,15 +490,15 @@ def level_background(base, lv):
         d.ellipse([x - 5, y - 7, x + 2, y - 2], fill=(240, 240, 245))
     for (x, y) in lv.bumpers:
         d.ellipse([x - 38, y - 38, x + 38, y + 38], fill=OL)
-        d.ellipse([x - 34, y - 34, x + 34, y + 34], fill=(230, 50, 70))
-        d.ellipse([x - 20, y - 20, x + 20, y + 20], fill=(255, 120, 130))
+        d.ellipse([x - 34, y - 34, x + 34, y + 34], fill=T["bump"])
+        d.ellipse([x - 20, y - 20, x + 20, y + 20], fill=_mix(T["bump"], (255, 255, 255), 0.45))
     W, H, SY = L["W"], L["H"], L["SHRED_Y"]
-    d.rectangle([0, SY, W, H], fill=(30, 12, 12))
-    sz = min(68, H - SY)
-    for x in range(0, W, 60):
-        d.ellipse([x - 4, SY + (H - SY - sz) / 2, x + 64, SY + (H - SY + sz) / 2], fill=(60, 60, 66), outline=OL, width=4)
-    if H - SY > 100:
-        text_c(d, (W / 2, H - 50), "SHREDDER", 52, (255, 70, 60), stroke=6)
+    d.rectangle([0, SY, W, H], fill=T["pit_bg"])
+    if T["pit_fx"] == "gears":
+        sz = min(68, H - SY)
+        for x in range(0, W, 60):
+            d.ellipse([x - 4, SY + (H - SY - sz) / 2, x + 64, SY + (H - SY + sz) / 2], fill=(60, 60, 66), outline=OL, width=4)
+    d.line([(0, SY), (W, SY)], fill=OL, width=6)
     return img
 
 
@@ -411,10 +558,12 @@ def build_audio(seconds, events, rng):
 
 
 # ---------------------------------------------------------------- the show
-def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, render=True, name=None):
+def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, render=True, name=None, theme="factory"):
     """render=False runs only the physics (for testing that no level ever gets stuck)."""
     L.clear()
     L.update(LAYOUTS[layout])
+    T.clear()
+    T.update(THEMES[theme])
     W, H = L["W"], L["H"]
     long_form = layout == "landscape"
     rng = np.random.default_rng(seed)
@@ -433,7 +582,7 @@ def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, re
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
                            "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
                            "-pix_fmt", "yuv420p", silent], stdin=subprocess.PIPE) if render else None
-    events, frame_no, history, chapters, level_times = [], [0], [], [], []
+    events, frame_no, history, chapters, level_times, paths = [], [0], [], [], [], []
     vt = lambda: frame_no[0] / FPS                         # noqa: E731
     flying, sparks = [], []
 
@@ -443,7 +592,7 @@ def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, re
         frame_no[0] += 1
 
     # ---- intro: every country, appearing fast
-    intro = 6.0 if long_form else 3.2
+    intro = 7.0 if long_form else 3.2
     chapters.append((0.0, f"All {n_start} countries"))
     if render:
         cols = max(4, int(math.ceil(math.sqrt(n_start * (W / (H - 330)))))) if long_form else 4
@@ -455,7 +604,7 @@ def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, re
             p = 1 + 0.05 * math.sin(f * 0.25)
             if long_form:
                 text_c(d, (W / 2, 70), f"ALL {n_start} COUNTRIES", 90 * p, (255, 220, 50), stroke=8)
-                text_c(d, (W / 2, 150), "Find your country - only ONE survives the factory!", 44, (255, 255, 255), stroke=5)
+                text_c(d, (W / 2, 150), f"Find your country - only ONE survives the {T['title'].upper()}!", 44, (255, 255, 255), stroke=5)
             else:
                 text_c(d, (W / 2, 90), "FIND YOUR", 84 * p, (255, 255, 255), stroke=8)
                 text_c(d, (W / 2, 190), "COUNTRY!", 110 * p, (255, 220, 50), stroke=9)
@@ -475,7 +624,7 @@ def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, re
                     img.paste(spr, (int(cx - 85), int(cy - spr.height / 2)), spr)
                     d.text((cx - 20, cy), lab, font=font(40), fill=(255, 255, 255), anchor="lm", stroke_width=5, stroke_fill=OL)
             if not long_form:
-                text_c(d, (W / 2, 1720), "Only ONE survives the factory", 52, (255, 255, 255), stroke=6)
+                text_c(d, (W / 2, 1720), f"Only ONE survives the {T['title'].upper()}", 52, (255, 255, 255), stroke=6, max_w=W - 60)
                 text_c(d, (W / 2, 1800), "Comment your country below!", 50, (255, 220, 50), stroke=6)
             emit(img)
     else:
@@ -507,7 +656,7 @@ def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, re
         still = {}
         while True:
             dt = 1 / FPS
-            if phase == "card" and phase_t > (1.5 if long_form else 1.1):
+            if phase == "card" and phase_t > (2.0 if long_form else 1.1):
                 phase, phase_t = "count", 0.0
             elif phase == "count" and phase_t > 0.9:
                 lv.release()
@@ -571,12 +720,13 @@ def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, re
             else:
                 frame_no[0] += 1
         if long_form and eliminated and len(alive) > 2:         # recap: who just got shredded
-            recap_s = 2.0 + min(1.5, len(eliminated) / 40)
+            recap_s = 2.6 + min(1.5, len(eliminated) / 40)
             if render:
                 draw_recap(eliminated, li, base_bg, balls, info, emit, W, H, recap_s)
             else:
                 frame_no[0] += int(recap_s * FPS)
         level_times.append(round(run_t, 1))
+        paths.append(lv.kinds)
         history.append({"level": li + 1, "qualified": [info[c][2] for c in qualified], "eliminated": [info[c][2] for c in eliminated]})
         alive = [info[c] for c in qualified]
         li += 1
@@ -591,7 +741,7 @@ def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, re
     else:
         frame_no[0] += int(5.0 * FPS)
     total = frame_no[0] / FPS
-    meta = {"seed": seed, "style": "factory", "world": "factory", "character": "flags", "layout": layout,
+    meta = {"seed": seed, "style": "factory", "world": theme, "place": T["title"], "pit": T["pit"], "paths": paths, "character": "flags", "layout": layout,
             "countries": [c[2] for c in start], "runners": [c[2] for c in start], "winner": champ[2],
             "eliminated": [[c, f"LEVEL {h['level']}"] for h in history for c in h["eliminated"]],
             "levels": len(history), "level_run_seconds": level_times, "duration_s": round(total, 1),
@@ -645,6 +795,11 @@ def draw_frame(lv, bg, bodies, balls, info, r, qualified, quota, li, n, final, p
         elif kind == "flipper":
             p0, p1 = b.local_to_world((0, 0)), b.local_to_world((sgn * Lh, 0))
             metal_line(d, tuple(p0), tuple(p1), 22, (230, 160, 60))
+        elif kind == "spinner":
+            for a3 in range(3):
+                ang = b.angle + a3 * 2 * math.pi / 3
+                p1 = (b.position.x + Lh * math.cos(ang), b.position.y + Lh * math.sin(ang))
+                metal_line(d, tuple(b.position), p1, 18, _mix(T["bump"], (255, 255, 255), 0.2))
         else:
             for a4 in range(4):
                 ang = b.angle + a4 * math.pi / 2
@@ -652,15 +807,7 @@ def draw_frame(lv, bg, bodies, balls, info, r, qualified, quota, li, n, final, p
                 metal_line(d, tuple(b.position), p1, 20, (180, 110, 230))
         c = b.position
         d.ellipse([c.x - 14, c.y - 14, c.x + 14, c.y + 14], fill=(240, 240, 245), outline=OL, width=4)
-    SY = L["SHRED_Y"]
-    cy0 = SY + (H - SY) / 2
-    R1 = min(34, (H - SY) / 2 - 2)
-    for x in range(0, W, 60):
-        for k in range(6):
-            a = now * 6 * (1 if (x // 60) % 2 else -1) + k * math.pi / 3
-            cx = x + 30
-            d.polygon([(cx + R1 * math.cos(a), cy0 + R1 * math.sin(a)), (cx + R1 * 0.6 * math.cos(a + 0.3), cy0 + R1 * 0.6 * math.sin(a + 0.3)),
-                       (cx + R1 * 0.6 * math.cos(a - 0.3), cy0 + R1 * 0.6 * math.sin(a - 0.3))], fill=(200, 200, 210))
+    draw_pit(d, W, H, now)
     show_labels = r >= (40 if not long_form else 30)
     for cc, (b, s) in bodies.items():
         spr = balls.sprite(cc, r, math.degrees(b.angle))
@@ -672,7 +819,7 @@ def draw_frame(lv, bg, bodies, balls, info, r, qualified, quota, li, n, final, p
         age = now - sp[4]
         if 0 <= age < 0.8:
             x, y = sp[0] + sp[2] * age, sp[1] + sp[3] * age + 900 * age * age
-            d.rectangle([x - 4, y - 4, x + 4, y + 4], fill=(255, int(200 - 200 * age), 40))
+            d.rectangle([x - 4, y - 4, x + 4, y + 4], fill=_mix(T["spark"], (255, 60, 30), age))
     sparks[:] = [s_ for s_ in sparks if now - s_[4] < 0.8]
 
     # HUD
@@ -731,27 +878,75 @@ def draw_frame(lv, bg, bodies, balls, info, r, qualified, quota, li, n, final, p
     elif phase == "count":
         text_c(d, (W / 2, cy), "3" if phase_t < 0.3 else "2" if phase_t < 0.6 else "1", 260, (255, 255, 255), stroke=14)
     elif phase in ("close", "drop") and phase_t < 1.6:
-        text_c(d, (W / 2, cy - 40), "GATE CLOSED!" if phase == "close" else "TRAPDOOR OPEN!", 100, (255, 80, 70), stroke=10)
+        text_c(d, (W / 2, cy - 40), "GATE CLOSED!" if phase == "close" else "INTO THE " + T["pit"] + "!", 100, (255, 80, 70), stroke=10,
+               max_w=W - 60)
         text_c(d, (W / 2, cy + 70), f"{n - quota} ELIMINATED", 60, (255, 255, 255), stroke=6)
     emit(img)
 
 
-def pick_seed(base_seed, n_start, layout, lo, hi, max_level_s, tries=25):
-    """Test-runs the physics (fast, no rendering) and returns the first seed whose video fits [lo, hi] seconds
-    and whose slowest level is under max_level_s - so every published video flows smoothly."""
-    best = None
+def draw_pit(d, W, H, now):
+    SY = L["SHRED_Y"]
+    cy0 = SY + (H - SY) / 2
+    R1 = min(34, (H - SY) / 2 - 2)
+    fx, col = T["pit_fx"], T["pit_col"]
+    if fx == "gears":
+        for x in range(0, W, 60):
+            for k in range(6):
+                a = now * 6 * (1 if (x // 60) % 2 else -1) + k * math.pi / 3
+                cx = x + 30
+                d.polygon([(cx + R1 * math.cos(a), cy0 + R1 * math.sin(a)), (cx + R1 * 0.6 * math.cos(a + 0.3), cy0 + R1 * 0.6 * math.sin(a + 0.3)),
+                           (cx + R1 * 0.6 * math.cos(a - 0.3), cy0 + R1 * 0.6 * math.sin(a - 0.3))], fill=(200, 200, 210))
+    elif fx in ("lava", "water"):
+        base = (255, 110, 10) if fx == "lava" else _mix(T["pit_bg"], (255, 255, 255), 0.25)
+        pts = [(x, SY + 14 + 8 * math.sin(x / 50 + now * 4)) for x in range(0, W + 20, 20)]
+        d.polygon(pts + [(W, SY + 30), (0, SY + 30)], fill=base)
+        d.line(pts, fill=col, width=5)
+        for k in range(int(W / 90)):
+            ph = (now * 1.3 + k * 0.37) % 1
+            x = (k * 97) % W
+            d.ellipse([x - 7 * ph - 3, cy0 - 3 - 7 * ph, x + 7 * ph + 3, cy0 + 3 + 7 * ph], outline=col, width=3)
+    elif fx == "spikes":
+        for x in range(0, W, 40):
+            up = 6 * math.sin(now * 5 + x / 70)
+            d.polygon([(x, H), (x + 20, SY + 6 + up), (x + 40, H)], fill=col, outline=OL)
+    elif fx == "vortex":
+        for k in range(14):
+            a = now * 3 + k * 0.45
+            rx = (k + 1) * W / 30
+            d.arc([W / 2 - rx, cy0 - R1 * 0.9, W / 2 + rx, cy0 + R1 * 0.9], math.degrees(a) % 360, math.degrees(a) % 360 + 120,
+                  fill=_mix(col, (255, 255, 255), k / 20), width=4)
+    else:                                                    # zap
+        for k in range(int(W / 120) + 1):
+            x0 = k * 120 + 60
+            pts = [(x0 + (18 if (j + int(now * 12)) % 2 else -18), SY + 6 + j * (H - SY - 12) / 6) for j in range(7)]
+            d.line(pts, fill=col, width=4)
+    if H - SY > 100:
+        text_c(d, (W / 2, H - 50), T["pit"], 56, (255, 255, 255), stroke=8, sf=_mix(T["pit_bg"], (0, 0, 0), 0.5))
+
+
+def pick_seed(base_seed, n_start, layout, lo, hi, max_level_s, tries=40, avoid_winners=(), avoid_paths=()):
+    """Test-runs the physics (fast, no rendering) and returns the first seed whose video fits [lo, hi] seconds,
+    whose slowest level is under max_level_s (flows smoothly), whose champion did not win recently and whose
+    machine layout differs from the other videos of the day."""
+    best = stale = None
+    avoid_winners = set(avoid_winners)
+    avoid_paths = {tuple(map(tuple, p)) for p in avoid_paths}
     for k in range(tries):
         s = base_seed * 100 + k
         try:
             _, m = render_video(s, "/tmp", n_start, layout, render=False)
         except RuntimeError:
             continue
+        fresh = m["winner"] not in avoid_winners and tuple(map(tuple, m["paths"])) not in avoid_paths
+        if not fresh:
+            stale = stale or (s, m)
+            continue
         ok = lo <= m["duration_s"] <= hi and max(m["level_run_seconds"]) <= max_level_s
         if ok:
             return s, m
         if best is None or max(m["level_run_seconds"]) < max(best[1]["level_run_seconds"]):
             best = (s, m)
-    return best
+    return best or stale
 
 
 def draw_recap(eliminated, li, base_bg, balls, info, emit, W, H, seconds):
@@ -767,7 +962,7 @@ def draw_recap(eliminated, li, base_bg, balls, info, emit, W, H, seconds):
         d = ImageDraw.Draw(img)
         pop = min(1, f / 6)
         text_c(d, (W / 2, 80), f"ELIMINATED IN LEVEL {li + 1}", 76 * pop, (255, 80, 70), stroke=8)
-        text_c(d, (W / 2, 160), f"{n} countries went into the shredder", 40, (255, 255, 255), stroke=5)
+        text_c(d, (W / 2, 160), f"{n} countries fell into the {T['pit']}", 40, (255, 255, 255), stroke=5)
         shown = int(min(n, (f + 1) * n / (FPS * 0.8)))
         for k, cc in enumerate(eliminated[:shown]):
             cx = W / 2 + ((k % cols) - (cols - 1) / 2) * cell
@@ -805,13 +1000,13 @@ def draw_outro(champ, base_bg, balls, emit, W, H, long_form, pyr):
             if tt > 1.0:
                 text_c(d, (tx, 620), "Did your country win?", 60, (255, 255, 255), stroke=7)
             if tt > 1.8:
-                text_c(d, (tx, 720), "New factory every day - Subscribe!", 48, (255, 220, 50), stroke=6)
+                text_c(d, (tx, 720), "New place every day - Subscribe!", 48, (255, 220, 50), stroke=6)
         else:
             spr = balls.sprite(champ[0], 230, math.sin(tt * 3) * 20)
             img.paste(spr, (int(W / 2 - spr.width / 2), int(1000 - bounce - spr.height / 2)), spr)
             text_c(d, (W / 2, 220), "CHAMPION", 80, (255, 220, 50), stroke=8)
             text_c(d, (W / 2, 380), name, (150 if len(name) < 9 else 100) * pop, (255, 255, 255), stroke=14)
-            text_c(d, (W / 2, 520), "WINS THE FACTORY!", 70 * pop, (255, 220, 50), stroke=8)
+            text_c(d, (W / 2, 520), "WINS THE " + T["title"].upper() + "!", 70 * pop, (255, 220, 50), stroke=8, max_w=W - 60)
             if tt > 1.0:
                 text_c(d, (W / 2, 1440), "Did your country win?", 66, (255, 255, 255), stroke=7)
             if tt > 1.8:
@@ -824,7 +1019,7 @@ def make_thumbnail(path, start, balls, pyr):
     img = Image.new("RGB", (W, H), (25, 28, 40))
     d = ImageDraw.Draw(img)
     for y in range(H):
-        d.line([(0, y), (W, y)], fill=(int(25 + 40 * y / H), 28, int(40 + 30 * y / H)))
+        d.line([(0, y), (W, y)], fill=_mix(T["bg"][0], T["bg"][1], y / H))
     sample = list(start)
     pyr.shuffle(sample)
     for c in sample[:70]:                                    # a pile of flag balls
@@ -833,7 +1028,7 @@ def make_thumbnail(path, start, balls, pyr):
         img.paste(spr, (int(x - spr.width / 2), int(y - spr.height / 2)), spr)
     text_c(d, (W / 2, 150), f"{len(start)} COUNTRIES", 170, (255, 220, 50), stroke=16)
     text_c(d, (W / 2, 330), "ONLY 1 SURVIVES", 130, (255, 255, 255), stroke=14)
-    text_c(d, (W / 2, 470), "THE FACTORY", 90, (255, 90, 70), stroke=10)
+    text_c(d, (W / 2, 470), T["title"].upper(), 90, (255, 90, 70), stroke=10)
     img.resize((1280, 720), Image.LANCZOS).save(path, quality=92)
 
 
@@ -844,7 +1039,8 @@ if __name__ == "__main__":
     ap.add_argument("--long", action="store_true", help="landscape 2-3 min video with all countries")
     ap.add_argument("--countries", type=int, default=None)
     ap.add_argument("--preview", action="store_true")
+    ap.add_argument("--theme", default="factory", choices=THEME_NAMES)
     a = ap.parse_args()
     n = a.countries or (len(COUNTRIES) if a.long else 32)
-    m = render_video(a.seed, a.out, n, "landscape" if a.long else "portrait", a.preview)[1]
+    m = render_video(a.seed, a.out, n, "landscape" if a.long else "portrait", a.preview, theme=a.theme)[1]
     print(json.dumps(m, indent=2, ensure_ascii=False))
