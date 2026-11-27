@@ -1,25 +1,34 @@
-"""Countries used by the Flag Factory (ISO-2 code, short label, display name). No dependencies."""
+"""All countries for the Flag Factory: (ISO-2 code, short label, display name). No dependencies."""
 
-# (ISO-2, short label, display name)
-COUNTRIES = [
-    ("US", "USA", "USA"), ("GB", "UK", "UK"), ("CA", "CAN", "CANADA"), ("MX", "MEX", "MEXICO"), ("BR", "BRA", "BRAZIL"),
-    ("AR", "ARG", "ARGENTINA"), ("CO", "COL", "COLOMBIA"), ("CL", "CHI", "CHILE"), ("PE", "PER", "PERU"), ("VE", "VEN", "VENEZUELA"),
-    ("EC", "ECU", "ECUADOR"), ("UY", "URU", "URUGUAY"), ("PY", "PAR", "PARAGUAY"), ("BO", "BOL", "BOLIVIA"), ("CU", "CUB", "CUBA"),
-    ("DO", "DOM", "DOMINICAN REP."), ("JM", "JAM", "JAMAICA"), ("PA", "PAN", "PANAMA"), ("CR", "CRC", "COSTA RICA"), ("GT", "GUA", "GUATEMALA"),
-    ("FR", "FRA", "FRANCE"), ("DE", "GER", "GERMANY"), ("IT", "ITA", "ITALY"), ("ES", "ESP", "SPAIN"), ("PT", "POR", "PORTUGAL"),
-    ("NL", "NED", "NETHERLANDS"), ("BE", "BEL", "BELGIUM"), ("CH", "SUI", "SWITZERLAND"), ("AT", "AUT", "AUSTRIA"), ("SE", "SWE", "SWEDEN"),
-    ("NO", "NOR", "NORWAY"), ("DK", "DEN", "DENMARK"), ("FI", "FIN", "FINLAND"), ("IS", "ISL", "ICELAND"), ("IE", "IRL", "IRELAND"),
-    ("PL", "POL", "POLAND"), ("CZ", "CZE", "CZECHIA"), ("SK", "SVK", "SLOVAKIA"), ("HU", "HUN", "HUNGARY"), ("RO", "ROU", "ROMANIA"),
-    ("BG", "BUL", "BULGARIA"), ("GR", "GRE", "GREECE"), ("HR", "CRO", "CROATIA"), ("RS", "SRB", "SERBIA"), ("SI", "SLO", "SLOVENIA"),
-    ("BA", "BIH", "BOSNIA"), ("AL", "ALB", "ALBANIA"), ("UA", "UKR", "UKRAINE"), ("LT", "LTU", "LITHUANIA"), ("LV", "LAT", "LATVIA"),
-    ("EE", "EST", "ESTONIA"), ("MD", "MDA", "MOLDOVA"), ("GE", "GEO", "GEORGIA"), ("AM", "ARM", "ARMENIA"), ("AZ", "AZE", "AZERBAIJAN"),
-    ("TR", "TUR", "TURKEY"), ("KZ", "KAZ", "KAZAKHSTAN"), ("UZ", "UZB", "UZBEKISTAN"), ("CY", "CYP", "CYPRUS"), ("MT", "MLT", "MALTA"),
-    ("EG", "EGY", "EGYPT"), ("MA", "MAR", "MOROCCO"), ("DZ", "ALG", "ALGERIA"), ("TN", "TUN", "TUNISIA"), ("NG", "NGA", "NIGERIA"),
-    ("GH", "GHA", "GHANA"), ("SN", "SEN", "SENEGAL"), ("CM", "CMR", "CAMEROON"), ("CI", "CIV", "IVORY COAST"), ("KE", "KEN", "KENYA"),
-    ("ET", "ETH", "ETHIOPIA"), ("TZ", "TAN", "TANZANIA"), ("UG", "UGA", "UGANDA"), ("ZA", "RSA", "SOUTH AFRICA"), ("AO", "ANG", "ANGOLA"),
-    ("SA", "KSA", "SAUDI ARABIA"), ("AE", "UAE", "UAE"), ("QA", "QAT", "QATAR"), ("IL", "ISR", "ISRAEL"), ("JO", "JOR", "JORDAN"),
-    ("IQ", "IRQ", "IRAQ"), ("IR", "IRN", "IRAN"), ("PK", "PAK", "PAKISTAN"), ("IN", "IND", "INDIA"), ("BD", "BAN", "BANGLADESH"),
-    ("LK", "SRI", "SRI LANKA"), ("NP", "NEP", "NEPAL"), ("CN", "CHN", "CHINA"), ("JP", "JPN", "JAPAN"), ("KR", "KOR", "SOUTH KOREA"),
-    ("MN", "MGL", "MONGOLIA"), ("TW", "TPE", "TAIWAN"), ("VN", "VIE", "VIETNAM"), ("TH", "THA", "THAILAND"), ("MY", "MAS", "MALAYSIA"),
-    ("SG", "SGP", "SINGAPORE"), ("ID", "INA", "INDONESIA"), ("PH", "PHI", "PHILIPPINES"), ("AU", "AUS", "AUSTRALIA"), ("NZ", "NZL", "NEW ZEALAND"),
-]
+_ALL = """AF Afghanistan|AL Albania|DZ Algeria|AD Andorra|AO Angola|AG Antigua & Barbuda|AR Argentina|AM Armenia|AU Australia|AT Austria|
+AZ Azerbaijan|BS Bahamas|BH Bahrain|BD Bangladesh|BB Barbados|BY Belarus|BE Belgium|BZ Belize|BJ Benin|BT Bhutan|BO Bolivia|
+BA Bosnia|BW Botswana|BR Brazil|BN Brunei|BG Bulgaria|BF Burkina Faso|BI Burundi|CV Cabo Verde|KH Cambodia|CM Cameroon|CA Canada|
+CF Central African Rep.|TD Chad|CL Chile|CN China|CO Colombia|KM Comoros|CG Congo|CD DR Congo|CR Costa Rica|CI Ivory Coast|HR Croatia|
+CU Cuba|CY Cyprus|CZ Czechia|DK Denmark|DJ Djibouti|DM Dominica|DO Dominican Rep.|EC Ecuador|EG Egypt|SV El Salvador|
+GQ Equatorial Guinea|ER Eritrea|EE Estonia|SZ Eswatini|ET Ethiopia|FJ Fiji|FI Finland|FR France|GA Gabon|GM Gambia|GE Georgia|
+DE Germany|GH Ghana|GR Greece|GD Grenada|GT Guatemala|GN Guinea|GW Guinea-Bissau|GY Guyana|HT Haiti|HN Honduras|HU Hungary|
+IS Iceland|IN India|ID Indonesia|IR Iran|IQ Iraq|IE Ireland|IL Israel|IT Italy|JM Jamaica|JP Japan|JO Jordan|KZ Kazakhstan|KE Kenya|
+KI Kiribati|XK Kosovo|KW Kuwait|KG Kyrgyzstan|LA Laos|LV Latvia|LB Lebanon|LS Lesotho|LR Liberia|LY Libya|LI Liechtenstein|
+LT Lithuania|LU Luxembourg|MG Madagascar|MW Malawi|MY Malaysia|MV Maldives|ML Mali|MT Malta|MH Marshall Islands|MR Mauritania|
+MU Mauritius|MX Mexico|FM Micronesia|MD Moldova|MC Monaco|MN Mongolia|ME Montenegro|MA Morocco|MZ Mozambique|MM Myanmar|NA Namibia|
+NR Nauru|NP Nepal|NL Netherlands|NZ New Zealand|NI Nicaragua|NE Niger|NG Nigeria|KP North Korea|MK North Macedonia|NO Norway|OM Oman|
+PK Pakistan|PW Palau|PS Palestine|PA Panama|PG Papua New Guinea|PY Paraguay|PE Peru|PH Philippines|PL Poland|PT Portugal|QA Qatar|
+RO Romania|RU Russia|RW Rwanda|KN Saint Kitts & Nevis|LC Saint Lucia|VC Saint Vincent|WS Samoa|SM San Marino|ST Sao Tome|
+SA Saudi Arabia|SN Senegal|RS Serbia|SC Seychelles|SL Sierra Leone|SG Singapore|SK Slovakia|SI Slovenia|SB Solomon Islands|SO Somalia|
+ZA South Africa|KR South Korea|SS South Sudan|ES Spain|LK Sri Lanka|SD Sudan|SR Suriname|SE Sweden|CH Switzerland|SY Syria|TW Taiwan|
+TJ Tajikistan|TZ Tanzania|TH Thailand|TL Timor-Leste|TG Togo|TO Tonga|TT Trinidad & Tobago|TN Tunisia|TR Turkey|TM Turkmenistan|
+TV Tuvalu|UG Uganda|UA Ukraine|AE UAE|GB UK|US USA|UY Uruguay|UZ Uzbekistan|VU Vanuatu|VA Vatican|VE Venezuela|VN Vietnam|YE Yemen|
+ZM Zambia|ZW Zimbabwe"""
+
+_LABELS = {"US": "USA", "GB": "UK", "CA": "CAN", "MX": "MEX", "BR": "BRA", "AR": "ARG", "CL": "CHI", "DE": "GER", "NL": "NED",
+           "CH": "SUI", "DK": "DEN", "PT": "POR", "HR": "CRO", "RS": "SRB", "SI": "SLO", "GR": "GRE", "BG": "BUL", "LV": "LAT",
+           "MD": "MDA", "DZ": "ALG", "NG": "NGA", "ZA": "RSA", "SA": "KSA", "AE": "UAE", "IN": "IND", "BD": "BAN", "LK": "SRI",
+           "NP": "NEP", "CN": "CHN", "JP": "JPN", "KR": "KOR", "KP": "PRK", "MN": "MGL", "TW": "TPE", "VN": "VIE", "MY": "MAS",
+           "SG": "SGP", "ID": "INA", "PH": "PHI", "NZ": "NZL", "IE": "IRL", "IS": "ISL", "CR": "CRC", "GT": "GUA", "DO": "DOM",
+           "UY": "URU", "PY": "PAR", "CI": "CIV", "CD": "COD", "CG": "CGO", "TZ": "TAN", "AO": "ANG", "IR": "IRN", "IQ": "IRQ",
+           "KZ": "KAZ", "MA": "MAR", "SE": "SWE", "AT": "AUT", "MT": "MLT", "SK": "SVK", "SV": "SLV", "GQ": "GEQ", "GW": "GBS"}
+
+COUNTRIES = []
+for item in _ALL.replace("\n", "").split("|"):
+    cc, name = item.split(" ", 1)
+    COUNTRIES.append((cc, _LABELS.get(cc, name.replace(" ", "")[:3].upper()), name.upper()))
