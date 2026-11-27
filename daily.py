@@ -4,7 +4,9 @@ Env vars (all optional):
   SHORT_TIMES_UTC  HH:MM list, one Short per time       (default "08:00,11:00,14:00,17:00,20:00")
   LONG_TIMES_UTC   HH:MM list, one long video per time  (default "15:00,19:00"; "off" = none)
   LONG_FORMAT      "factory" (all countries, 2-3 min, default) or "tournament" (color race tournament)
-  STYLES           styles cycled over the Shorts     (default "3d,2d,2d,3d,2d" -> 2x 3D + 3x 2D)
+  SHORT_FORMAT     "countries" (default): every Short is a country race, each in a different place
+                   "mixed": the old rotation of 3D colour races + country races (uses STYLES)
+  STYLES           styles cycled over the Shorts in "mixed" mode (default "3d,2d,2d,3d,2d")
   UPLOAD           "0" = only render, don't upload
   YT_CLIENT_ID / YT_CLIENT_SECRET / YT_REFRESH_TOKEN  for uploading
 """
@@ -43,34 +45,35 @@ Today's track: {place}. {n_runners} {who}. Meteors, lightning, landmines, trapdo
 New races every day — subscribe so you don't miss your color's revenge.
 
 #shorts #pickacolor #colorrace #race #whowillwin #satisfying"""
+PLACE_EMOJI = {"factory": "🏭", "space": "🚀", "ice": "🧊", "jungle": "🌴", "volcano": "🌋", "candy": "🍭", "sea": "🦈", "neon": "🌃"}
 FACTORY_TITLES = [
-    "Which Country Survives the Factory? 🏭 #shorts",
-    "32 Countries Enter, Only ONE Survives! 🌍 #shorts",
-    "Find Your Country! Will It Survive? 🏭 #shorts",
-    "Country Ball Elimination — Who Wins? 🏆 #shorts",
-    "Comment Your Country BEFORE Level 1! 🌍 #shorts",
-    "The Factory Shredder Decides the Champion! ⚙️ #shorts",
+    "Which Country Survives the {place}? {e} #shorts",
+    "32 Countries Enter the {place}, Only ONE Survives! 🌍 #shorts",
+    "Find Your Country! Will It Escape the {pit}? {e} #shorts",
+    "Country Ball Elimination: {place} Edition 🏆 #shorts",
+    "Comment Your Country BEFORE Level 1! {e} #shorts",
+    "The {pit} Decides the Champion! {e} #shorts",
 ]
 FACTORY_DESCRIPTION = """Find your country and comment it below! 👇
-32 country balls drop through the factory. Each level only the first half gets through the gate. The rest go to the SHREDDER.
+32 country balls race through the {place}. Each level only the first half gets through the gate. The rest fall into the {pit}.
 Today's champion: watch till the end!
 
 New race every day — subscribe and see if your country survives tomorrow.
 
 #shorts #countryballs #countries #marblerace #flags #whowillwin"""
 LONG_FACTORY_TITLES = [
-    "ALL {n} COUNTRIES in the Factory — Only ONE Survives! 🌍🏭",
-    "{n} Countries Enter the Shredder Factory… Who Wins? 🏆",
-    "Every Country in the World Races — Only 1 Champion! 🌍",
-    "{n} Country Balls Elimination Race — Find Your Country! 🏁",
+    "ALL {n} COUNTRIES in the {place} — Only ONE Survives! 🌍{e}",
+    "{n} Countries vs the {pit}… Who Wins? 🏆",
+    "Every Country in the World Races Through the {place} — Only 1 Champion! 🌍",
+    "{n} Country Balls Elimination: {place} Edition — Find Your Country! 🏁",
 ]
-LONG_FACTORY_DESCRIPTION = """ALL {n} countries of the world drop through the factory. Every level the slowest third goes into the SHREDDER.
+LONG_FACTORY_DESCRIPTION = """ALL {n} countries of the world race through the {place}. Every level the slowest third falls into the {pit}.
 Find your country and comment how far it got! 👇
 
 Chapters:
 {chapters}
 
-New factory every day — subscribe and see if your country becomes champion!
+New place every day — subscribe and see if your country becomes champion!
 
 #countries #countryballs #marblerace #flags #elimination #whowillwin"""
 LONG_FACTORY_TAGS = ["all countries", "countries race", "country balls", "flags", "marble race", "elimination", "who will win"]
@@ -94,7 +97,10 @@ def main():
     long_raw = os.environ.get("LONG_TIMES_UTC", os.environ.get("LONG_TIME_UTC", "15:00,19:00")).strip()
     long_times = [] if long_raw == "off" else [t.strip() for t in long_raw.split(",") if t.strip()]
     long_format = os.environ.get("LONG_FORMAT", "factory")
+    short_format = os.environ.get("SHORT_FORMAT", "countries")
     styles = [x.strip() for x in os.environ.get("STYLES", "3d,2d,2d,3d,2d").split(",") if x.strip()]
+    if short_format == "countries":
+        styles = ["2d"]
     do_upload = os.environ.get("UPLOAD", "1") != "0" and bool(os.environ.get("YT_REFRESH_TOKEN"))
     out_dir = os.path.join("out", today.isoformat())
     os.makedirs(out_dir, exist_ok=True)
@@ -108,6 +114,27 @@ def main():
           f"memory={len(videos)} videos")
     log, failed = [], 0
     n3d = 0
+    # variety: a different place for every video today, no recent champion wins again, no repeated machine layout
+    cutoff = (now - dt.timedelta(days=14)).isoformat()
+    recent_winners = {v.get("winner") for v in videos if v.get("format") == "factory" and str(v.get("published", "")) >= cutoff}
+    used_places, used_paths, day_winners = [], [], set()
+    place_order = factory2d.THEME_NAMES
+
+    def next_place(k, rng):
+        default = place_order[(day * 7 + k) % len(place_order)]
+        free = [p for p in place_order if p not in used_places] or list(place_order)
+        if default not in free:
+            default = free[0]
+        place = brain.choose(videos, "world", place_order, default, rng, allowed=free)
+        used_places.append(place)
+        return place
+
+    def fresh_seed(base, n, layout, lo, hi, mx):
+        fseed, m = factory2d.pick_seed(base, n, layout, lo, hi, mx, avoid_winners=recent_winners | day_winners,
+                                       avoid_paths=used_paths)
+        day_winners.add(m["winner"])
+        used_paths.append(m["paths"])
+        return fseed
     starter = int(os.environ.get("QUOTA_UNITS", "10000")) >= 15000      # first comment only when quota allows
 
     def remember(entry, kind, extra):
@@ -119,7 +146,9 @@ def main():
             if starter:
                 try:
                     from upload import post_comment
-                    post_comment(entry["video_id"], "Which color did you pick? 👇 Comment it before the race ends!")
+                    post_comment(entry["video_id"], "Which country did you pick? 👇 Comment it before level 1 ends!"
+                                 if extra.get("format") == "factory" else
+                                 "Which color did you pick? 👇 Comment it before the race ends!")
                     brain.spend(state, 50)
                 except Exception as e:
                     print("starter comment failed:", str(e)[:150])
@@ -153,19 +182,24 @@ def main():
             character = brain.choose(videos, "character", CHARACTER_ORDER, CHARACTER_ORDER[slot % len(CHARACTER_ORDER)], rng)
             who = CHARACTER_WORD[character]
             camera = None
-            print(f"-- short {i + 1}/{len(times)}: {style} {world} {character}", flush=True)
-            if style == "2d":                                       # 2D = the Flag Factory format
-                world, character, who = "factory", "flags", "Countries"
-                print("   -> 2d flag factory", flush=True)
-                fseed, _ = factory2d.pick_seed(seed, 32, "portrait", 35, 75, 12)    # pre-tested: flows smoothly
-                path, meta = factory2d.render_video(fseed, out_dir, 32, "portrait", name=f"factory_short_{seed}")
+            if style != "2d":
+                print(f"-- short {i + 1}/{len(times)}: {style} {world} {character}", flush=True)
+            else:
+                print(f"-- short {i + 1}/{len(times)}: country race", flush=True)
+            if style == "2d":                                       # 2D = the country race (Flag Factory)
+                world = next_place(i, rng)
+                character, who = "flags", "Countries"
+                print(f"   -> country race in: {world}", flush=True)
+                fseed = fresh_seed(seed, 32, "portrait", 35, 75, 12)      # pre-tested: flows smoothly, fresh winner
+                path, meta = factory2d.render_video(fseed, out_dir, 32, "portrait", name=f"factory_short_{seed}", theme=world)
             else:
                 camera = brain.choose(videos, "camera", ["behind", "cinematic"], "behind" if n3d % 2 == 0 else "cinematic", rng)
                 n3d += 1
                 path, meta = render.render_video(seed, out_dir, world=world, character=character, camera=camera)
             if style == "2d":
-                title = random.Random(seed).choice(FACTORY_TITLES)
-                desc, tags = FACTORY_DESCRIPTION, FACTORY_TAGS
+                fmt = dict(place=meta["place"], pit=meta["pit"].title(), e=PLACE_EMOJI.get(world, "🌍"))
+                title = random.Random(seed).choice(FACTORY_TITLES).format(**fmt)
+                desc, tags = FACTORY_DESCRIPTION.format(**fmt), FACTORY_TAGS + [meta["place"].lower()]
             else:
                 title = random.Random(seed).choice(TITLES).format(n=race_no, who=who)
                 desc, tags = DESCRIPTION.format(n_runners=len(meta["runners"]), place=world.upper(), who=who), TAGS
@@ -192,13 +226,16 @@ def main():
                 extra = {"character": character, "champion": meta["champion"], "entrants": meta["entrants"], "winner": meta["champion"]}
                 title, desc, tags = meta["title"], meta["description"], LONG_TAGS
             else:
-                fseed, _ = factory2d.pick_seed(lseed, 999, "landscape", 120, 180, 20)   # pre-tested: 2-3 min, no jams
-                path, meta = factory2d.render_video(fseed, out_dir, 999, "landscape", name=f"factory_long_{lseed}")
+                place = next_place(5 + j, random.Random(lseed))
+                print(f"   -> all countries in: {place}", flush=True)
+                fseed = fresh_seed(lseed, 999, "landscape", 120, 180, 20)        # pre-tested: 2-3 min, no jams
+                path, meta = factory2d.render_video(fseed, out_dir, 999, "landscape", name=f"factory_long_{lseed}", theme=place)
                 n_c = len(meta["countries"])
-                title = random.Random(lseed).choice(LONG_FACTORY_TITLES).format(n=n_c)
-                desc = LONG_FACTORY_DESCRIPTION.format(n=n_c, chapters=meta["chapters"])
-                tags = LONG_FACTORY_TAGS
-                extra = {"format": "factory", "style": "factory-long", "winner": meta["winner"],
+                fmt = dict(n=n_c, place=meta["place"], pit=meta["pit"].title(), e=PLACE_EMOJI.get(place, "🌍"))
+                title = random.Random(lseed).choice(LONG_FACTORY_TITLES).format(**fmt)
+                desc = LONG_FACTORY_DESCRIPTION.format(chapters=meta["chapters"], **fmt)
+                tags = LONG_FACTORY_TAGS + [meta["place"].lower()]
+                extra = {"format": "factory", "style": "factory-long", "world": place, "winner": meta["winner"],
                          "eliminated": meta["eliminated"], "runners": meta["runners"]}
             entry = {"kind": "long", "title": title, "publish_at": at_time(today, lt, now) or "now", **meta}
             jobs.append((0 + j * 0.1, entry, (path, title, desc, tags, at_time(today, lt, now), meta.get("thumbnail")), "long", extra))
