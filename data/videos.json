@@ -4,7 +4,7 @@
   "kind": "short",
   "published": "2026-11-25T17:00:12Z",
   "stats": {
-   "views": 12,
+   "views": 13,
    "likes": 3,
    "comments": 0
   },
@@ -15,8 +15,8 @@
   "kind": "short",
   "published": "2026-11-25T14:00:12Z",
   "stats": {
-   "views": 1060,
-   "likes": 11,
+   "views": 1115,
+   "likes": 12,
    "comments": 0
   },
   "title": "Meteors vs Tiny Cars — Pick Your Survivor! ☄️ #shorts"
@@ -26,7 +26,7 @@
   "kind": "short",
   "published": "2026-11-25T11:00:28Z",
   "stats": {
-   "views": 1095,
+   "views": 1204,
    "likes": 14,
    "comments": 0
   },
@@ -37,7 +37,7 @@
   "kind": "short",
   "published": "2026-11-25T08:00:15Z",
   "stats": {
-   "views": 1085,
+   "views": 1204,
    "likes": 8,
    "comments": 2
   },
@@ -48,7 +48,7 @@
   "kind": "long",
   "published": "2026-11-24T21:17:23Z",
   "stats": {
-   "views": 44,
+   "views": 47,
    "likes": 4,
    "comments": 0
   },
@@ -81,7 +81,7 @@
   "kind": "short",
   "published": "2026-11-24T20:36:41Z",
   "stats": {
-   "views": 1207,
+   "views": 1213,
    "likes": 13,
    "comments": 0
   },
@@ -92,7 +92,7 @@
   "kind": "short",
   "published": "2026-11-24T20:36:05Z",
   "stats": {
-   "views": 1203,
+   "views": 1204,
    "likes": 12,
    "comments": 2
   },
@@ -103,7 +103,7 @@
   "kind": "short",
   "published": "2026-11-24T19:51:50Z",
   "stats": {
-   "views": 1244,
+   "views": 1249,
    "likes": 11,
    "comments": 0
   },
@@ -132,7 +132,7 @@
   ],
   "winner": "LIME",
   "stats": {
-   "views": 5,
+   "views": 6,
    "likes": 2,
    "comments": 0
   }
@@ -178,7 +178,7 @@
    "RED"
   ],
   "stats": {
-   "views": 1165,
+   "views": 1168,
    "likes": 8,
    "comments": 0
   }
@@ -225,7 +225,7 @@
    "ORANGE"
   ],
   "stats": {
-   "views": 1117,
+   "views": 1132,
    "likes": 3,
    "comments": 0
   }
@@ -262,8 +262,8 @@
    "YELLOW"
   ],
   "stats": {
-   "views": 386,
-   "likes": 4,
+   "views": 924,
+   "likes": 7,
    "comments": 0
   }
  },
@@ -308,8 +308,8 @@
    "GREEN"
   ],
   "stats": {
-   "views": 1,
-   "likes": 0,
+   "views": 4,
+   "likes": 2,
    "comments": 0
   }
  },
@@ -317,7 +317,7 @@
   "video_id": "HR9Avm9Z5NM",
   "kind": "long",
   "title": "ALL 197 COUNTRIES in the Factory — Only ONE Survives! 🌍🏭",
-  "published": "2026-11-27T15:00:00Z",
+  "published": "2026-11-27T08:15:29Z",
   "format": "factory",
   "style": "factory-long",
   "winner": "CENTRAL AFRICAN REP.",
@@ -1305,13 +1305,18 @@
    "HUNGARY",
    "EGYPT",
    "CANADA"
-  ]
+  ],
+  "stats": {
+   "views": 2,
+   "likes": 0,
+   "comments": 0
+  }
  },
  {
   "video_id": "DOdSdw_Dpes",
   "kind": "long",
   "title": "197 Countries Enter the Shredder Factory… Who Wins? 🏆",
-  "published": "2026-11-27T19:00:00Z",
+  "published": "2026-11-27T08:15:34Z",
   "format": "factory",
   "style": "factory-long",
   "winner": "SAO TOME",
@@ -2299,13 +2304,18 @@
    "GABON",
    "TURKMENISTAN",
    "URUGUAY"
-  ]
+  ],
+  "stats": {
+   "views": 1,
+   "likes": 0,
+   "comments": 0
+  }
  },
  {
   "video_id": "oPMe8oqY_3o",
   "kind": "short",
   "title": "Pick a Color! Only ONE Survives 🏁 #shorts",
-  "published": "2026-11-27T08:00:00Z",
+  "published": "2026-11-27T08:16:10Z",
   "style": "3d",
   "world": "stadium",
   "character": "jelly",
@@ -2337,13 +2347,18 @@
    "YELLOW",
    "CYAN",
    "GREEN"
-  ]
+  ],
+  "stats": {
+   "views": 861,
+   "likes": 8,
+   "comments": 0
+  }
  },
  {
   "video_id": "ASwL97Bgx5Q",
   "kind": "short",
   "title": "Country Ball Elimination — Who Wins? 🏆 #shorts",
-  "published": "2026-11-27T11:00:00Z",
+  "published": "2026-11-27T11:00:28Z",
   "style": "2d",
   "world": "factory",
   "character": "flags",
@@ -2508,13 +2523,18 @@
    "NAURU",
    "GUYANA"
   ],
-  "format": "factory"
+  "format": "factory",
+  "stats": {
+   "views": 164,
+   "likes": 2,
+   "comments": 0
+  }
  },
  {
   "video_id": "roEAcWkdbr8",
   "kind": "short",
   "title": "Which Country Survives the Factory? 🏭 #shorts",
-  "published": "2026-11-27T14:00:00Z",
+  "published": "2026-11-27T08:15:45Z",
   "style": "2d",
   "world": "factory",
   "character": "flags",
@@ -2679,13 +2699,18 @@
    "ANGOLA",
    "CAMBODIA"
   ],
-  "format": "factory"
+  "format": "factory",
+  "stats": {
+   "views": 2,
+   "likes": 0,
+   "comments": 0
+  }
  },
  {
   "video_id": "_lGVV5TvWy8",
   "kind": "short",
   "title": "Meteors vs Tiny Cars — Pick Your Survivor! ☄️ #shorts",
-  "published": "2026-11-27T17:00:00Z",
+  "published": "2026-11-27T08:15:47Z",
   "style": "3d",
   "world": "city",
   "character": "car",
@@ -2717,13 +2742,18 @@
    "YELLOW",
    "CYAN",
    "WHITE"
-  ]
+  ],
+  "stats": {
+   "views": 0,
+   "likes": 0,
+   "comments": 0
+  }
  },
  {
   "video_id": "OJhSz6XA1TY",
   "kind": "short",
   "title": "The Factory Shredder Decides the Champion! ⚙️ #shorts",
-  "published": "2026-11-27T20:00:00Z",
+  "published": "2026-11-27T08:15:49Z",
   "style": "2d",
   "world": "factory",
   "character": "flags",
@@ -2888,6 +2918,11 @@
    "MOLDOVA",
    "PAPUA NEW GUINEA"
   ],
-  "format": "factory"
+  "format": "factory",
+  "stats": {
+   "views": 1,
+   "likes": 0,
+   "comments": 0
+  }
  }
 ]
