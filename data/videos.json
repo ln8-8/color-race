@@ -4,7 +4,7 @@
   "kind": "short",
   "published": "2026-11-25T17:00:12Z",
   "stats": {
-   "views": 10,
+   "views": 12,
    "likes": 3,
    "comments": 0
   },
@@ -15,7 +15,7 @@
   "kind": "short",
   "published": "2026-11-25T14:00:12Z",
   "stats": {
-   "views": 1058,
+   "views": 1060,
    "likes": 11,
    "comments": 0
   },
@@ -26,7 +26,7 @@
   "kind": "short",
   "published": "2026-11-25T11:00:28Z",
   "stats": {
-   "views": 1093,
+   "views": 1095,
    "likes": 14,
    "comments": 0
   },
@@ -37,7 +37,7 @@
   "kind": "short",
   "published": "2026-11-25T08:00:15Z",
   "stats": {
-   "views": 1084,
+   "views": 1085,
    "likes": 8,
    "comments": 2
   },
@@ -48,7 +48,7 @@
   "kind": "long",
   "published": "2026-11-24T21:17:23Z",
   "stats": {
-   "views": 42,
+   "views": 44,
    "likes": 4,
    "comments": 0
   },
@@ -59,7 +59,7 @@
   "kind": "short",
   "published": "2026-11-24T21:13:29Z",
   "stats": {
-   "views": 22,
+   "views": 25,
    "likes": 4,
    "comments": 0
   },
@@ -70,7 +70,7 @@
   "kind": "short",
   "published": "2026-11-24T21:13:13Z",
   "stats": {
-   "views": 24,
+   "views": 26,
    "likes": 4,
    "comments": 0
   },
@@ -81,7 +81,7 @@
   "kind": "short",
   "published": "2026-11-24T20:36:41Z",
   "stats": {
-   "views": 1199,
+   "views": 1207,
    "likes": 13,
    "comments": 0
   },
@@ -92,7 +92,7 @@
   "kind": "short",
   "published": "2026-11-24T20:36:05Z",
   "stats": {
-   "views": 1199,
+   "views": 1203,
    "likes": 12,
    "comments": 2
   },
@@ -103,7 +103,7 @@
   "kind": "short",
   "published": "2026-11-24T19:51:50Z",
   "stats": {
-   "views": 1238,
+   "views": 1244,
    "likes": 11,
    "comments": 0
   },
@@ -132,8 +132,8 @@
   ],
   "winner": "LIME",
   "stats": {
-   "views": 1,
-   "likes": 0,
+   "views": 5,
+   "likes": 2,
    "comments": 0
   }
  },
@@ -178,8 +178,8 @@
    "RED"
   ],
   "stats": {
-   "views": 607,
-   "likes": 7,
+   "views": 1165,
+   "likes": 8,
    "comments": 0
   }
  },
@@ -225,7 +225,7 @@
    "ORANGE"
   ],
   "stats": {
-   "views": 291,
+   "views": 1117,
    "likes": 3,
    "comments": 0
   }
@@ -262,8 +262,8 @@
    "YELLOW"
   ],
   "stats": {
-   "views": 0,
-   "likes": 0,
+   "views": 386,
+   "likes": 4,
    "comments": 0
   }
  },
@@ -271,7 +271,7 @@
   "video_id": "gEd0EjxN8kk",
   "kind": "short",
   "title": "Comment Your Color BEFORE the Race! 🏃 #shorts",
-  "published": "2026-11-26T05:20:24Z",
+  "published": "2026-11-26T21:00:27Z",
   "style": "2d",
   "world": "volcano",
   "character": "marble",
