@@ -1,15 +1,22 @@
-"""FLAG FACTORY — 2D elimination Shorts with country-flag balls and real physics.
+"""FLAG FACTORY — country-flag balls race through a factory with real physics.
 
-32 country balls drop through a factory machine (pegs, spinning paddles, conveyors, moving platforms, bumpers).
-Each level only the first half through the exit gate QUALIFY; then the gate shuts, the trapdoor opens and the
-rest fall into the SHREDDER. 32 -> 16 -> 8 -> 4 -> 2 -> 1 champion.
+Every level the first half through the exit gate(s) QUALIFY; the gates shut, the trapdoor opens and the rest
+fall into the SHREDDER, until one champion is left.
 
-Usage: python factory2d.py --seed 5 --out out/
+  Shorts (portrait 1080x1920): 32 countries, 5 levels, ~60-85 s
+  Long  (landscape 1920x1080): ALL 197 countries, 8 levels, ~2-3 min
+
+Every machine part slopes toward an exit (no flat ledges, no dead-end corners), so balls always reach a gate
+on their own. A tiny invisible nudge only frees a ball that has been perfectly still for a while.
+
+Usage: python factory2d.py --seed 5 --out out/                 (Short)
+       python factory2d.py --seed 5 --out out/ --long          (2-3 min, all countries)
 """
 import argparse
 import json
 import math
 import os
+import random
 import subprocess
 import wave
 
@@ -17,27 +24,39 @@ import numpy as np
 import pymunk
 from PIL import Image, ImageDraw, ImageFont
 
+from countries import COUNTRIES
+
 HERE = os.path.dirname(os.path.abspath(__file__))
-W, H, FPS, SR = 1080, 1920, 30, 44100
-SUB = 4                                   # physics sub-steps per frame
+FPS, SR, SUB = 30, 44100, 4
 FONT = os.path.join(HERE, "assets", "font.otf")
 EMOJI_FONTS = ["/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", "/usr/share/fonts/noto/NotoColorEmoji.ttf",
                os.path.join(HERE, "assets", "NotoColorEmoji.ttf")]
 OL = (18, 18, 24)
 
-from countries import COUNTRIES  # noqa: E402  (ISO-2, short label, display name)
-
-
-def flag_emoji(cc):
-    return "".join(chr(0x1F1E6 + ord(c) - 65) for c in cc)
+LAYOUTS = {
+    "portrait": dict(W=1080, H=1920, X0=70, X1=1010, HUD=300, HOLD_Y=640, BANDS=[(690, 1090), (1120, 1490)],
+                     FUN_Y=1530, GATE_Y=1690, SHRED_Y=1770, GATES=1, RMAX=66),
+    "landscape": dict(W=1920, H=1080, X0=80, X1=1840, HUD=170, HOLD_Y=310, BANDS=[(340, 560), (580, 790)],
+                      FUN_Y=820, GATE_Y=950, SHRED_Y=995, GATES=2, RMAX=44),
+}
+L = dict(LAYOUTS["portrait"])
 
 
 def font(size):
     return ImageFont.truetype(FONT, max(1, int(size)))
 
 
-def text_c(d, xy, s, size, fill, stroke=6, sf=OL):
-    d.text(xy, s, font=font(size), fill=fill, anchor="mm", stroke_width=stroke, stroke_fill=sf)
+def text_c(d, xy, s, size, fill, stroke=6, sf=OL, anchor="mm"):
+    d.text(xy, s, font=font(size), fill=fill, anchor=anchor, stroke_width=stroke, stroke_fill=sf)
+
+
+def flag_emoji(cc):
+    return "".join(chr(0x1F1E6 + ord(c) - 65) for c in cc)
+
+
+def ball_radius(n):
+    r = 13 if n > 150 else 17 if n > 80 else 22 if n > 40 else 31 if n > 20 else 38 if n > 10 else 46 if n > 5 else 56 if n > 2 else 66
+    return min(r, L["RMAX"])
 
 
 # ---------------------------------------------------------------- ball sprites
@@ -53,212 +72,254 @@ class Balls:
         if cc not in self.flags:
             im = Image.new("RGBA", (160, 160), (0, 0, 0, 0))
             ImageDraw.Draw(im).text((10, 10), flag_emoji(cc), font=self.ef, embedded_color=True)
-            bb = im.getbbox()
-            im = im.crop(bb)
+            im = im.crop(im.getbbox())
             w, h = im.size
-            side = int(min(w, h) * 0.86)                      # central square of the flag fills the ball
+            side = int(min(w, h) * 0.86)
             cx, cy = w // 2, h // 2
             self.flags[cc] = im.crop((cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2)).convert("RGBA")
         return self.flags[cc]
 
     def sprite(self, cc, r, angle_deg=0):
+        r = max(6, int(r))
         key = (cc, r, int(angle_deg) // 12 % 30)
         if key in self.cache:
             return self.cache[key]
-        S = 4
+        S = 4 if r < 80 else 2
         D = 2 * r * S
         base = self.flag(cc).resize((D, D), Image.LANCZOS)
         if key[2]:
             base = base.rotate(-key[2] * 12, resample=Image.BICUBIC)
         mask = Image.new("L", (D, D), 0)
         ImageDraw.Draw(mask).ellipse([0, 0, D - 1, D - 1], fill=255)
-        ball = Image.new("RGBA", (D + 8 * S, D + 8 * S), (0, 0, 0, 0))
-        ImageDraw.Draw(ball).ellipse([0, 0, D + 8 * S - 1, D + 8 * S - 1], fill=OL)          # outline
-        ball.paste(base, (4 * S, 4 * S), mask)
-        hl = Image.new("RGBA", ball.size, (0, 0, 0, 0))                                       # glossy shine
+        o = max(2, int(r * 0.12)) * S
+        ball = Image.new("RGBA", (D + 2 * o, D + 2 * o), (0, 0, 0, 0))
+        ImageDraw.Draw(ball).ellipse([0, 0, D + 2 * o - 1, D + 2 * o - 1], fill=OL)
+        ball.paste(base, (o, o), mask)
+        hl = Image.new("RGBA", ball.size, (0, 0, 0, 0))
         g = ImageDraw.Draw(hl)
         g.ellipse([D * 0.22, D * 0.12, D * 0.62, D * 0.42], fill=(255, 255, 255, 95))
         g.ellipse([D * 0.3, D * 0.2, D * 0.42, D * 0.3], fill=(255, 255, 255, 150))
         ball = Image.alpha_composite(ball, hl)
-        out = ball.resize(((D + 8 * S) // S, (D + 8 * S) // S), Image.LANCZOS)
+        out = ball.resize((ball.width // S, ball.height // S), Image.LANCZOS)
+        if len(self.cache) > 6000:
+            self.cache.clear()
         self.cache[key] = out
         return out
 
 
-# ---------------------------------------------------------------- factory levels
-X0, X1 = 70, 1010                 # inner walls
-TOP_Y, HOLD_Y = 430, 640          # spawn area, holding bar
-FUN_Y, GATE_Y = 1530, 1690        # funnel start, gate (exit)
-SHRED_Y = 1770
+# ---------------------------------------------------------------- the machine
+SLOPE = math.radians(22)          # every rail slopes at least this much -> balls never rest on it
 
 
 class Level:
-    def __init__(self, idx, n, quota, r, rng):
-        self.idx, self.n, self.quota, self.r = idx, n, quota, r
+    def __init__(self, n, quota, r, rng):
+        self.n, self.quota, self.r = n, quota, r
+        X0, X1 = L["X0"], L["X1"]
         self.space = pymunk.Space()
-        self.space.gravity = (0, 1700)
+        self.space.gravity = (0, 1700 if L["GATES"] == 1 else 1050)
         self.space.iterations = 20
         self.statics, self.kin, self.belts, self.bumpers, self.pegs = [], [], [], [], []
+        self.obstacles = []                     # shapes removed when the trapdoor opens
         sb = self.space.static_body
-        self.gap = 3 * r + 60                       # wide enough for two balls side by side
 
-        def seg(a, b, rad=6, el=0.4, fr=0.6, body=sb, store=True):
-            s = pymunk.Segment(body, a, b, rad)
+        def seg(a, b, rad=7, el=0.35, fr=0.5, store=True, obstacle=True):
+            s = pymunk.Segment(sb, a, b, rad)
             s.elasticity, s.friction = el, fr
             self.space.add(s)
-            if store and body is sb:
+            if store:
                 self.statics.append((a, b, rad))
+            if obstacle:
+                self.obstacles.append(s)
             return s
 
         self.seg = seg
-        seg((X0, 300), (X0, SHRED_Y), 8)
-        seg((X1, 300), (X1, SHRED_Y), 8)
-        gl, gr = W / 2 - self.gap / 2, W / 2 + self.gap / 2
-        self.funnel = [seg((X0, FUN_Y), (gl, GATE_Y), 9, store=False), seg((X1, FUN_Y), (gr, GATE_Y), 9, store=False)]
-        self.funnel_pts = [((X0, FUN_Y), (gl, GATE_Y)), ((X1, FUN_Y), (gr, GATE_Y))]
-        self.hold = seg((X0, HOLD_Y), (X1, HOLD_Y), 7, store=False)
-        self.gate = None
-        self.base_shapes = set(self.space.shapes)        # walls, funnel, holding bar: everything else is an obstacle
-        self.cleared = False
-        kinds = ["pegs", "paddles", "zigzag", "conveyor", "wheel", "bumpers"]
+        seg((X0, L["HUD"]), (X0, L["SHRED_Y"]), 8, obstacle=False)
+        seg((X1, L["HUD"]), (X1, L["SHRED_Y"]), 8, obstacle=False)
+        # exit gates + V funnels (a peak between two gates sends balls to both sides)
+        self.gw = 3 * r + 60 + (50 if n > 60 and L["GATES"] == 1 else 0)
+        G = L["GATES"]
+        centers = [X0 + (X1 - X0) * (k + 0.5) / G for k in range(G)]
+        self.gates = [(c - self.gw / 2, c + self.gw / 2) for c in centers]
+        pts, x_prev = [], X0
+        for k, (gl, gr) in enumerate(self.gates):
+            pts.append(((x_prev, L["FUN_Y"]), (gl, L["GATE_Y"])))
+            peak = (X1 if k == G - 1 else (gr + self.gates[k + 1][0]) / 2)
+            pts.append(((gr, L["GATE_Y"]), (peak, L["FUN_Y"])))
+            x_prev = peak
+        self.funnel_pts = pts
+        self.funnel = [seg(a, b, 9, fr=0.3, store=False, obstacle=False) for a, b in pts]
+        self.hold = seg((X0, L["HOLD_Y"]), (X1, L["HOLD_Y"]), 7, store=False, obstacle=False)
+        self.closed = []
+        kinds = ["pegs", "paddles", "rails", "belts", "wheels", "bumpers", "flippers", "splitters"]
         rng.shuffle(kinds)
         self.kinds = kinds[:2]
-        self._build(self.kinds[0], 700, 1080, rng)
-        self._build(self.kinds[1], 1120, 1500, rng)
+        for kind, (y0, y1) in zip(self.kinds, L["BANDS"]):
+            y1 = min(y1, L["FUN_Y"] - 2 * r - 60)          # always leave a full ball-height of space above the funnel
+            if y1 - y0 >= 90:
+                self._build(kind, y0, y1, rng)
 
+    # every builder keeps a free lane of at least 2r+44 next to walls and at the ends of rails
     def _build(self, kind, y0, y1, rng):
-        sb, r = self.space.static_body, self.r
+        X0, X1, r = L["X0"], L["X1"], self.r
+        sb, lane = self.space.static_body, 2.6 * r + 60
+        width = X1 - X0
         if kind == "pegs":
-            sp = 2 * r + 44
-            rows = int((y1 - y0) / (sp * 0.8))
+            sp = 2 * r + 52
+            rows = max(2, int((y1 - y0 - 40) / (sp * 0.85)))
             for j in range(rows):
-                off = (sp / 2) if j % 2 else 0
-                x = X0 + 40 + off
-                while x < X1 - 30:
-                    c = pymunk.Circle(sb, 9, (x, y0 + 30 + j * sp * 0.8))
-                    c.elasticity, c.friction = 0.55, 0.3
+                y = y0 + 30 + j * sp * 0.85
+                x = X0 + lane + (sp / 2 if j % 2 else 0)
+                while x < X1 - lane:
+                    c = pymunk.Circle(sb, 9, (x, y))
+                    c.elasticity, c.friction = 0.6, 0.2
                     self.space.add(c)
-                    self.pegs.append((x, y0 + 30 + j * sp * 0.8))
+                    self.obstacles.append(c)
+                    self.pegs.append((x, y))
                     x += sp
+        elif kind in ("rails", "belts", "flippers"):
+            # herringbone: short sloped rails from alternating walls, each ending in a free lane
+            seg_len = min(width * 0.48, 560)
+            dy = seg_len * math.tan(SLOPE)
+            rows = max(1, int((y1 - y0) / (dy + 2 * r + 30)))
+            for j in range(rows):
+                y = y0 + 10 + j * (y1 - y0) / rows
+                left = (j + rng.randrange(2)) % 2 == 0
+                a = (X0, y) if left else (X1, y)
+                b = (X0 + seg_len, y + dy) if left else (X1 - seg_len, y + dy)
+                if kind == "rails":
+                    self.seg(a, b, 8, fr=0.25)
+                elif kind == "belts":
+                    s = self.seg(a, b, 9, el=0.1, fr=0.9)
+                    sp = 280 * (1 if left else -1)
+                    s.surface_velocity = (sp * math.cos(SLOPE), sp * math.sin(SLOPE) * (1 if left else -1))  # downhill
+                    self.belts.append((a, b, 1 if left else -1))
+                    self.statics.pop()
+                else:     # flipper: pivots at the wall and swings between 10 and 40 degrees (always downhill)
+                    body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
+                    body.position = a
+                    sgn = 1 if left else -1
+                    body.angle = sgn * math.radians(25)
+                    s = pymunk.Segment(body, (0, 0), (sgn * seg_len * 0.9, 0), 10)
+                    s.elasticity, s.friction = 0.3, 0.4
+                    self.space.add(body, s)
+                    self.obstacles.append(s)
+                    self.kin.append(("flipper", body, seg_len * 0.9, sgn, rng.uniform(0, 6)))
         elif kind == "paddles":
-            n = 3
+            n = max(2, int(width / 330))
             for k in range(n):
                 b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-                b.position = (X0 + (k + 0.5) * (X1 - X0) / n, (y0 + y1) / 2 + (k % 2 - 0.5) * 120)
-                b.angular_velocity = (1.6 + rng.random()) * (1 if k % 2 else -1)
-                L = (X1 - X0) / n * 0.42
-                s = pymunk.Segment(b, (-L, 0), (L, 0), 10)
-                s.elasticity, s.friction = 0.5, 0.5
+                b.position = (X0 + (k + 0.5) * width / n, (y0 + y1) / 2 + (k % 2 - 0.5) * (y1 - y0) * 0.25)
+                b.angular_velocity = rng.uniform(1.5, 2.6) * (1 if k % 2 else -1)
+                Lh = width / n * 0.38
+                s = pymunk.Segment(b, (-Lh, 0), (Lh, 0), 10)
+                s.elasticity, s.friction = 0.5, 0.4
                 self.space.add(b, s)
-                self.kin.append(("paddle", b, L))
-        elif kind == "zigzag":
-            ys = np.linspace(y0, y1 - 150, 3)
-            for k, y in enumerate(ys):
-                if k % 2 == 0:
-                    self.seg((X0, y), (X1 - self.gap - 20, y + 150), 8, fr=0.2)
-                else:
-                    self.seg((X1, y), (X0 + self.gap + 20, y + 150), 8, fr=0.2)
-            b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)        # moving platform
-            b.position = (W / 2, (ys[0] + ys[1]) / 2 + 110)
-            s = pymunk.Segment(b, (-90, 0), (90, 0), 9)
-            s.elasticity, s.friction = 0.3, 0.8
-            self.space.add(b, s)
-            self.kin.append(("mover", b, 90))
-        elif kind == "conveyor":
-            ys = np.linspace(y0 + 40, y1 - 50, 3)
-            for k, y in enumerate(ys):
-                left = k % 2 == 0
-                a, bb = ((X0, y), (X1 - self.gap - 10, y + 60)) if left else ((X0 + self.gap + 10, y + 60), (X1, y))
-                s = self.seg(a, bb, 9, el=0.1, fr=1.0)
-                s.surface_velocity = ((-260 if left else 260), 0)
-                self.belts.append((a, bb, 1 if left else -1))
-        elif kind == "wheel":
-            for k, cx in enumerate((X0 + (X1 - X0) * 0.3, X0 + (X1 - X0) * 0.7)):
+                self.obstacles.append(s)
+                self.kin.append(("paddle", b, Lh, 0, 0))
+        elif kind == "wheels":
+            n = max(2, int(width / 450))
+            R = min(150, (y1 - y0) / 2 - 15)
+            for k in range(n):
                 b = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
-                b.position = (cx, (y0 + y1) / 2)
-                b.angular_velocity = 1.2 if k else -1.2
-                R = min(150, (y1 - y0) / 2 - 20)
+                b.position = (X0 + (k + 0.5) * width / n, (y0 + y1) / 2)
+                b.angular_velocity = 1.4 * (1 if k % 2 else -1)
                 self.space.add(b)
-                for a in range(4):
-                    ang = a * math.pi / 2
+                for a4 in range(4):
+                    ang = a4 * math.pi / 2
                     s = pymunk.Segment(b, (0, 0), (R * math.cos(ang), R * math.sin(ang)), 9)
-                    s.elasticity, s.friction = 0.4, 0.6
+                    s.elasticity, s.friction = 0.4, 0.4
                     self.space.add(s)
-                self.kin.append(("wheel", b, R))
+                    self.obstacles.append(s)
+                self.kin.append(("wheel", b, R, 0, 0))
         elif kind == "bumpers":
-            for k in range(7):
-                x = X0 + 90 + (k % 4) * ((X1 - X0 - 180) / 3) + (60 if k >= 4 else 0)
-                y = y0 + 70 + (k // 4) * (y1 - y0 - 140)
-                c = pymunk.Circle(sb, 34, (x, y))
-                c.elasticity, c.friction = 1.15, 0.2
-                self.space.add(c)
-                self.bumpers.append((x, y))
+            # bouncy round bumpers with a full free lane between every pair and next to the walls
+            R = 32
+            step = 2 * R + lane
+            cols = max(1, int((width - lane) // step))
+            x_first = X0 + (width - (cols * 2 * R + (cols - 1) * lane)) / 2 + R
+            rows = [(y0 + R + 10, [x_first + k * step for k in range(cols)])]
+            y2 = y0 + R + 10 + 2 * R + 2 * r + 60
+            if y2 + R < y1 and cols > 1:
+                rows.append((y2, [x_first + (k + 0.5) * step for k in range(cols - 1)]))
+            for y, xs in rows:
+                for x in xs:
+                    c = pymunk.Circle(sb, R, (x, y))
+                    c.elasticity, c.friction = 1.1, 0.1
+                    self.space.add(c)
+                    self.obstacles.append(c)
+                    self.bumpers.append((x, y))
+        elif kind == "splitters":
+            # roof-shaped deflectors (apex up). Every gap (roof-roof and roof-wall) is a full free lane,
+            # so there is never a valley narrower than a ball.
+            n = max(1, int(width / 420))
+            while n > 1 and (width - (n + 1) * lane) / (2 * n) < 50:
+                n -= 1
+            half = (width - (n + 1) * lane) / (2 * n)
+            if half < 40:
+                return
+            h = half * math.tan(math.radians(30))
+            row1 = y0 + 20
+            centers1 = [X0 + lane + half + k * (2 * half + lane) for k in range(n)]
+            rows = [(row1, centers1)]
+            row2 = row1 + h + 2 * r + 40
+            if n > 1 and row2 + h < y1:
+                rows.append((row2, [(centers1[k] + centers1[k + 1]) / 2 for k in range(n - 1)]))
+            for yy, cxs in rows:
+                for cx in cxs:
+                    self.seg((cx - half, yy + h), (cx, yy), 8, fr=0.2)
+                    self.seg((cx, yy), (cx + half, yy + h), 8, fr=0.2)
 
     def release(self):
         self.space.remove(self.hold)
         self.hold = None
 
-    def close_gate(self):
-        gl, gr = W / 2 - self.gap / 2, W / 2 + self.gap / 2
-        self.gate = self.seg((gl - 4, GATE_Y), (gr + 4, GATE_Y), 9, store=False)
-
-    def clear_obstacles(self):
-        """OVERTIME: the machine's obstacles break away so every ball falls freely."""
-        if self.cleared:
-            return
-        for sh in list(self.space.shapes):
-            if sh not in self.base_shapes and sh is not self.gate and sh.body.body_type != pymunk.Body.DYNAMIC:
-                self.space.remove(sh)
-        for kind, b, L in self.kin:
-            if b in self.space.bodies:
-                self.space.remove(b)
-        self.kin, self.belts, self.pegs, self.bumpers = [], [], [], []
-        self.statics = self.statics[:2]
-        self.cleared = True
+    def close_gates(self):
+        for gl, gr in self.gates:
+            self.closed.append(self.seg((gl - 4, L["GATE_Y"]), (gr + 4, L["GATE_Y"]), 9, store=False, obstacle=False))
 
     def open_trapdoor(self):
-        self.clear_obstacles()
-        for s in self.funnel:
-            self.space.remove(s)
-        self.funnel = []
-        if self.gate is not None:
-            self.space.remove(self.gate)
-            self.gate = None
+        for s in self.funnel + self.closed + self.obstacles:
+            if s in self.space.shapes:
+                self.space.remove(s)
+        for item in self.kin:
+            if item[1] in self.space.bodies:
+                self.space.remove(item[1])
+        self.funnel, self.closed, self.obstacles, self.kin = [], [], [], []
+        self.statics = self.statics[:2]
+        self.pegs, self.bumpers, self.belts = [], [], []
 
     def step(self, t, dt):
-        for kind, b, L in self.kin:
-            if kind == "mover":
-                b.velocity = (260 * math.cos(t * 1.6), 0)
+        for kind, b, Lh, sgn, ph in self.kin:
+            if kind == "flipper":
+                b.angular_velocity = sgn * math.radians(15) * 2.2 * math.cos(t * 2.2 + ph)   # angle 25 +/- 15 deg
         self.space.step(dt)
 
 
 # ---------------------------------------------------------------- drawing
 def factory_background(seed):
+    W, H = L["W"], L["H"]
     img = Image.new("RGB", (W, H))
     d = ImageDraw.Draw(img)
     for y in range(H):
         t = y / H
         d.line([(0, y), (W, y)], fill=(int(34 + 18 * t), int(38 + 14 * t), int(48 + 10 * t)))
     r = np.random.default_rng(seed)
-    for k in range(9):                                     # background pipes
+    for k in range(int(W / 120)):
         x = int(r.uniform(0, W))
-        d.rectangle([x - 14, 300, x + 14, H], fill=(46, 52, 64))
-        for y in range(330, H, 160):
+        d.rectangle([x - 14, L["HUD"], x + 14, H], fill=(46, 52, 64))
+        for y in range(L["HUD"] + 30, H, 160):
             d.rectangle([x - 20, y, x + 20, y + 14], fill=(58, 64, 78))
-    for k in range(4):
-        y = int(r.uniform(700, 1500))
-        d.rectangle([0, y - 10, W, y + 10], fill=(44, 50, 62))
-    for x in range(30, W, 120):                            # rivets
-        for y in range(340, H, 200):
+    for x in range(30, W, 120):
+        for y in range(L["HUD"] + 40, H, 200):
             d.ellipse([x - 4, y - 4, x + 4, y + 4], fill=(70, 76, 92))
-    d.rectangle([0, 0, W, 300], fill=(20, 22, 30))
+    d.rectangle([0, 0, W, L["HUD"]], fill=(20, 22, 30))
     return img
 
 
 def hazard_line(d, a, b, w):
     d.line([a, b], fill=OL, width=int(w + 8))
-    L = math.dist(a, b)
-    n = max(1, int(L / 28))
+    Ls = math.dist(a, b)
+    n = max(1, int(Ls / 28))
     for k in range(n):
         p0 = (a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n)
         p1 = (a[0] + (b[0] - a[0]) * (k + 1) / n, a[1] + (b[1] - a[1]) * (k + 1) / n)
@@ -281,14 +342,16 @@ def level_background(base, lv):
         d.ellipse([x - 10, y - 10, x + 10, y + 10], fill=(185, 190, 200))
         d.ellipse([x - 5, y - 7, x + 2, y - 2], fill=(240, 240, 245))
     for (x, y) in lv.bumpers:
-        d.ellipse([x - 40, y - 40, x + 40, y + 40], fill=OL)
-        d.ellipse([x - 36, y - 36, x + 36, y + 36], fill=(230, 50, 70))
-        d.ellipse([x - 22, y - 22, x + 22, y + 22], fill=(255, 120, 130))
-    # shredder
-    d.rectangle([0, SHRED_Y, W, H], fill=(30, 12, 12))
+        d.ellipse([x - 38, y - 38, x + 38, y + 38], fill=OL)
+        d.ellipse([x - 34, y - 34, x + 34, y + 34], fill=(230, 50, 70))
+        d.ellipse([x - 20, y - 20, x + 20, y + 20], fill=(255, 120, 130))
+    W, H, SY = L["W"], L["H"], L["SHRED_Y"]
+    d.rectangle([0, SY, W, H], fill=(30, 12, 12))
+    sz = min(68, H - SY)
     for x in range(0, W, 60):
-        d.ellipse([x - 4, SHRED_Y + 40, x + 64, SHRED_Y + 108], fill=(60, 60, 66), outline=OL, width=4)
-    text_c(d, (W / 2, H - 50), "SHREDDER", 52, (255, 70, 60), stroke=6)
+        d.ellipse([x - 4, SY + (H - SY - sz) / 2, x + 64, SY + (H - SY + sz) / 2], fill=(60, 60, 66), outline=OL, width=4)
+    if H - SY > 100:
+        text_c(d, (W / 2, H - 50), "SHREDDER", 52, (255, 70, 60), stroke=6)
     return img
 
 
@@ -296,7 +359,6 @@ def level_background(base, lv):
 def build_audio(seconds, events, rng):
     N = int(seconds * SR) + SR
     out = np.zeros(N)
-    t = np.arange(N) / SR
 
     def add(sig, at, g=1.0):
         i = int(at * SR)
@@ -317,7 +379,7 @@ def build_audio(seconds, events, rng):
     kick = np.sin(2 * np.pi * np.cumsum(np.geomspace(150, 45, int(0.25 * SR))) / SR) * np.exp(-np.arange(int(0.25 * SR)) / SR * 12)
     roots = [55, 55, 73.4, 65.4]
     k, tt = 0, 0.5
-    while tt < seconds - 0.5:                                   # industrial beat
+    while tt < seconds - 0.5:
         add(kick, tt, 0.55)
         add(noise(0.05, 70) * 0.5, tt + beat / 2, 0.3)
         if k % 2:
@@ -325,20 +387,21 @@ def build_audio(seconds, events, rng):
         add(tone(roots[(k // 8) % 4] * 2, beat * 0.9, 4, True), tt, 0.08)
         tt += beat
         k += 1
-    q_count = {}
+    q, last_q = {}, -1
     for at, kind, extra in events:
         if kind == "level":
             add(tone(220, 0.6, 3, True), at, 0.25)
         elif kind == "go":
             add(tone(880, 0.4, 5), at, 0.4)
-        elif kind == "qualify":
-            n = q_count.get(extra, 0)
-            q_count[extra] = n + 1
-            add(tone(660 * 2 ** (n / 12), 0.18, 14), at, 0.35)
+        elif kind == "qualify" and at - last_q > 0.06:          # don't machine-gun when 90 balls qualify
+            n = q.get(extra, 0)
+            q[extra] = n + 1
+            add(tone(660 * 2 ** ((n % 24) / 24), 0.18, 14), at, 0.3)
+            last_q = at
         elif kind == "gate":
             add(noise(0.4, 10) * 0.8 + tone(90, 0.4, 8), at, 0.7)
         elif kind == "shred":
-            add(noise(0.35, 6) * 0.6 + tone(70, 0.35, 6, True) * 0.4, at, 0.5)
+            add(noise(0.3, 7) * 0.5 + tone(70, 0.3, 6, True) * 0.3, at, 0.35)
         elif kind == "win":
             for j, f in enumerate([523, 659, 784, 1046]):
                 add(tone(f, 0.6 if j < 3 else 1.5, 3, True), at + j * 0.14, 0.25)
@@ -347,277 +410,194 @@ def build_audio(seconds, events, rng):
     return (out * 32767).astype(np.int16)
 
 
-# ---------------------------------------------------------------- main
-def render_video(seed, out_dir, n_start=32, preview=False):
+# ---------------------------------------------------------------- the show
+def render_video(seed, out_dir, n_start=32, layout="portrait", preview=False, render=True, name=None):
+    """render=False runs only the physics (for testing that no level ever gets stuck)."""
+    L.clear()
+    L.update(LAYOUTS[layout])
+    W, H = L["W"], L["H"]
+    long_form = layout == "landscape"
     rng = np.random.default_rng(seed)
-    pyr = __import__("random").Random(seed)
+    pyr = random.Random(seed)              # physics + layout decisions only
+    fx = random.Random(seed + 1)           # visual effects (so the test run and the real render match exactly)
+    n_start = min(n_start, len(COUNTRIES))
     idx = rng.permutation(len(COUNTRIES))[:n_start]
-    alive = [COUNTRIES[i] for i in idx]
+    start = [COUNTRIES[i] for i in idx]
+    alive = list(start)
     info = {c[0]: c for c in alive}
-    balls = Balls()
-    base_bg = factory_background(seed)
+    balls = Balls() if render else None
+    base_bg = factory_background(seed) if render else None
     os.makedirs(out_dir, exist_ok=True)
-    stem = os.path.join(out_dir, f"factory_{seed}")
+    stem = os.path.join(out_dir, name or f"factory_{seed}")
     silent, wav, mp4 = stem + "_v.mp4", stem + ".wav", stem + ".mp4"
     ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
                            "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
-                           "-pix_fmt", "yuv420p", silent], stdin=subprocess.PIPE)
-    events, frame_no, history = [], [0], []
+                           "-pix_fmt", "yuv420p", silent], stdin=subprocess.PIPE) if render else None
+    events, frame_no, history, chapters, level_times = [], [0], [], [], []
     vt = lambda: frame_no[0] / FPS                         # noqa: E731
-    flying = []                                            # qualified balls flying to the top strip
-    sparks = []
+    flying, sparks = [], []
 
     def emit(img):
-        if not preview or frame_no[0] % 10 == 0:
+        if render and (not preview or frame_no[0] % 10 == 0):
             ff.stdin.write(img.tobytes())
         frame_no[0] += 1
 
-    def hud(d, title, sub=None, qualified=(), quota=0, level=None, levels=None):
-        text_c(d, (W / 2, 62), title, 74, (255, 220, 50), stroke=8)
-        if sub:
-            text_c(d, (W / 2, 140), sub, 46, (255, 255, 255), stroke=6)
-        if level:
-            d.rounded_rectangle([40, 180, 300, 240], 20, fill=(60, 66, 84))
-            text_c(d, (170, 210), f"LEVEL {level}/{levels}", 36, (255, 255, 255), stroke=0)
-            d.rounded_rectangle([W - 380, 180, W - 40, 240], 20, fill=(40, 120, 70))
-            text_c(d, (W - 210, 210), f"QUALIFIED {len(qualified)}/{quota}", 36, (255, 255, 255), stroke=0)
-        if quota:                                          # strip with qualified flags
-            n = quota
-            sz = min(56, (W - 80) / max(1, n) - 4)
-            x0 = W / 2 - (sz + 4) * n / 2
-            for k in range(n):
-                cx, cy = x0 + k * (sz + 4) + sz / 2, 285
-                if k < len(qualified):
-                    spr = balls.sprite(qualified[k], int(sz / 2))
-                    img_ref[0].paste(spr, (int(cx - spr.width / 2), int(cy - spr.height / 2)), spr)
+    # ---- intro: every country, appearing fast
+    intro = 6.0 if long_form else 3.2
+    chapters.append((0.0, f"All {n_start} countries"))
+    if render:
+        cols = max(4, int(math.ceil(math.sqrt(n_start * (W / (H - 330)))))) if long_form else 4
+        rows = math.ceil(n_start / cols)
+        cell = min((W - 80) / cols, (H - 330) / rows) if long_form else 160
+        for f in range(int(intro * FPS)):
+            img = base_bg.copy()
+            d = ImageDraw.Draw(img)
+            p = 1 + 0.05 * math.sin(f * 0.25)
+            if long_form:
+                text_c(d, (W / 2, 70), f"ALL {n_start} COUNTRIES", 90 * p, (255, 220, 50), stroke=8)
+                text_c(d, (W / 2, 150), "Find your country - only ONE survives the factory!", 44, (255, 255, 255), stroke=5)
+            else:
+                text_c(d, (W / 2, 90), "FIND YOUR", 84 * p, (255, 255, 255), stroke=8)
+                text_c(d, (W / 2, 190), "COUNTRY!", 110 * p, (255, 220, 50), stroke=9)
+            shown = int(min(n_start, (f + 1) * n_start / (intro * FPS * 0.6)))
+            for k, (cc, lab, nm) in enumerate(start[:shown]):
+                if long_form:
+                    cx = W / 2 + ((k % cols) - (cols - 1) / 2) * cell
+                    cy = 230 + (k // cols + 0.5) * cell
+                    spr = balls.sprite(cc, cell * 0.36)
+                    img.paste(spr, (int(cx - spr.width / 2), int(cy - spr.height / 2 - cell * 0.1)), spr)
+                    d.text((cx, cy + cell * 0.32), lab, font=font(max(12, cell * 0.2)), fill=(255, 255, 255), anchor="mm",
+                           stroke_width=3, stroke_fill=OL)
                 else:
-                    d.ellipse([cx - sz / 2, cy - sz / 2, cx + sz / 2, cy + sz / 2], outline=(110, 116, 130), width=3)
+                    cx = W / 2 + ((k % 4) - 1.5) * 235
+                    cy = 400 + (k // 4) * 160
+                    spr = balls.sprite(cc, 56)
+                    img.paste(spr, (int(cx - 85), int(cy - spr.height / 2)), spr)
+                    d.text((cx - 20, cy), lab, font=font(40), fill=(255, 255, 255), anchor="lm", stroke_width=5, stroke_fill=OL)
+            if not long_form:
+                text_c(d, (W / 2, 1720), "Only ONE survives the factory", 52, (255, 255, 255), stroke=6)
+                text_c(d, (W / 2, 1800), "Comment your country below!", 50, (255, 220, 50), stroke=6)
+            emit(img)
+    else:
+        frame_no[0] += int(intro * FPS)
 
-    img_ref = [None]
-
-    # ---- intro: all flags
-    intro = 3.2
-    for f in range(int(intro * FPS)):
-        img = base_bg.copy()
-        img_ref[0] = img
-        d = ImageDraw.Draw(img)
-        p = 1 + 0.05 * math.sin(f * 0.25)
-        text_c(d, (W / 2, 90), "FIND YOUR", 84 * p, (255, 255, 255), stroke=8)
-        text_c(d, (W / 2, 190), "COUNTRY!", 110 * p, (255, 220, 50), stroke=9)
-        cols, sz = 4, 112
-        for k, (cc, lab, name) in enumerate(alive):
-            if f < k * 1.2:
-                continue
-            cx = W / 2 + ((k % cols) - (cols - 1) / 2) * 235
-            cy = 400 + (k // cols) * 160
-            spr = balls.sprite(cc, sz // 2)
-            img.paste(spr, (int(cx - 85), int(cy - spr.height / 2)), spr)
-            d.text((cx - 20, cy), lab, font=font(40), fill=(255, 255, 255), anchor="lm", stroke_width=5, stroke_fill=OL)
-        text_c(d, (W / 2, 1720), "Only ONE survives the factory", 52, (255, 255, 255), stroke=6)
-        text_c(d, (W / 2, 1800), "Comment your country below!", 50, (255, 220, 50), stroke=6)
-        emit(img)
-
-    levels = int(math.log2(n_start))
-    sizes = {64: 22, 32: 31, 16: 38, 8: 46, 4: 56, 2: 66}
-    for li in range(levels):
+    li = 0
+    while len(alive) > 1:
         n = len(alive)
-        quota = n // 2
-        r = sizes.get(n, 30)
-        lv = Level(li, n, quota, r, pyr)
-        bg = level_background(base_bg, lv)
+        # Shorts halve the field each level; long videos remove a third (more levels, 2-3 minutes)
+        quota = (n - max(1, round(n / 3))) if (long_form and n > 4) else max(1, n // 2)
+        final = quota == 1
+        r = ball_radius(n)
+        lv = Level(n, quota, r, pyr)
+        bg = level_background(base_bg, lv) if render else None
         bodies = {}
-        cols = max(1, int((X1 - X0 - 20) // (2 * r + 6)))
-        for k, (cc, lab, name) in enumerate(alive):
+        cols = max(1, int((L["X1"] - L["X0"] - 20) // (2 * r + 6)))
+        for k, (cc, lab, nm) in enumerate(alive):
             b = pymunk.Body(1, pymunk.moment_for_circle(1, 0, r))
-            b.position = (X0 + 20 + r + (k % cols) * (2 * r + 6) + pyr.uniform(-3, 3), HOLD_Y - r - 8 - (k // cols) * (2 * r + 4))
+            b.position = (L["X0"] + 14 + r + (k % cols) * (2 * r + 6) + pyr.uniform(-3, 3),
+                          L["HOLD_Y"] - r - 8 - (k // cols) * (2 * r + 4))
             s = pymunk.Circle(b, r)
-            s.elasticity, s.friction = 0.35, 0.7
+            s.elasticity, s.friction = 0.35, 0.6
             lv.space.add(b, s)
             bodies[cc] = (b, s)
         qualified, eliminated = [], []
-        t, phase, phase_t = 0.0, "card", 0.0
+        t, phase, phase_t, run_t = 0.0, "card", 0.0, 0.0
         events.append((vt(), "level", li))
-        stuck = {}
-        overtime_t = -9
+        chapters.append((vt(), "THE FINAL" if final else f"Level {li + 1}: {n} countries, top {quota} qualify"))
+        still = {}
         while True:
             dt = 1 / FPS
-            if phase == "card" and phase_t > 1.1:
+            if phase == "card" and phase_t > (1.5 if long_form else 1.1):
                 phase, phase_t = "count", 0.0
             elif phase == "count" and phase_t > 0.9:
                 lv.release()
                 events.append((vt(), "go", li))
                 phase, phase_t = "run", 0.0
             elif phase == "run":
-                # qualify balls that drop through the gate
                 for cc, (b, s) in list(bodies.items()):
-                    if b.position.y > GATE_Y + r + 4 and len(qualified) < quota and lv.gate is None:
+                    if b.position.y > L["GATE_Y"] + r + 4 and len(qualified) < quota:
                         lv.space.remove(b, s)
                         del bodies[cc]
                         qualified.append(cc)
                         flying.append([cc, b.position.x, b.position.y, vt(), len(qualified) - 1, quota, r])
                         events.append((vt(), "qualify", li))
-                if len(qualified) >= quota and lv.gate is None:
-                    lv.close_gate()
+                if len(qualified) >= quota:
+                    lv.close_gates()
                     events.append((vt(), "gate", li))
+                    run_t = phase_t
                     phase, phase_t = "close", 0.0
-                # anti-stuck nudges (and a hard limit)
-                for cc, (b, s) in bodies.items():
-                    if b.velocity.length < 20:
-                        stuck[cc] = stuck.get(cc, 0) + dt
-                        if stuck[cc] > 1.2:
+                for cc, (b, s) in bodies.items():          # invisible safety: free a ball that is perfectly still
+                    if b.velocity.length < 10:
+                        still[cc] = still.get(cc, 0) + dt
+                        if still[cc] > 1.5:
                             b.apply_impulse_at_local_point((pyr.uniform(-250, 250), -pyr.uniform(150, 350)))
-                            stuck[cc] = 0
+                            still[cc] = 0
                     else:
-                        stuck[cc] = 0
-                if phase_t > 9 and not lv.cleared:                    # OVERTIME: obstacles break away
-                    lv.clear_obstacles()
-                    bg = level_background(base_bg, lv)
-                    overtime_t = vt()
-                    events.append((vt(), "gate", li))
-                if phase_t > 18 and lv.gate is None:                 # last-resort safety
-                    for cc in sorted(bodies, key=lambda c: -bodies[c][0].position.y)[: quota - len(qualified)]:
-                        bodies[cc][0].position = (W / 2, GATE_Y + r + 10)
+                        still[cc] = 0
             elif phase == "close" and phase_t > 0.5:
                 lv.open_trapdoor()
-                bg = level_background(base_bg, lv)
+                if render:
+                    bg = level_background(base_bg, lv)
                 phase, phase_t = "drop", 0.0
             elif phase == "drop":
                 for cc, (b, s) in list(bodies.items()):
-                    if b.position.y > SHRED_Y + 20:
+                    if b.position.y > L["SHRED_Y"] + 15:
                         lv.space.remove(b, s)
                         del bodies[cc]
                         eliminated.append(cc)
                         events.append((vt(), "shred", li))
-                        for _ in range(18):
-                            a = pyr.uniform(0, 2 * math.pi)
-                            sp = pyr.uniform(200, 700)
-                            sparks.append([b.position.x, SHRED_Y + 20, math.cos(a) * sp, -abs(math.sin(a)) * sp, vt()])
-                if not bodies or phase_t > 2.5:
-                    for cc in list(bodies):
-                        eliminated.append(cc)
+                        if render:
+                            for _ in range(10 if n > 60 else 18):
+                                a = fx.uniform(0, 2 * math.pi)
+                                sp = fx.uniform(200, 700)
+                                sparks.append([b.position.x, L["SHRED_Y"] + 15, math.cos(a) * sp, -abs(math.sin(a)) * sp, vt()])
+                if not bodies or phase_t > 3.0:
+                    eliminated += list(bodies)
                     bodies = {}
                     phase, phase_t = "done", 0.0
             elif phase == "done" and phase_t > 0.6:
                 break
+            if phase == "run" and phase_t > 90:
+                where = sorted((int(b.position.x), int(b.position.y), int(b.velocity.length)) for b, _ in bodies.values())[:6]
+                raise RuntimeError(f"level {li + 1} did not finish (seed {seed}) kinds={lv.kinds} r={r} "
+                                   f"q={len(qualified)}/{quota} left={len(bodies)} at={where}")
             for _ in range(SUB):
                 lv.step(t, dt / SUB)
                 t += dt / SUB
             phase_t += dt
-
-            # ---- draw
-            img = bg.copy()
-            img_ref[0] = img
-            d = ImageDraw.Draw(img)
-            for a, b, sgn in lv.belts:                                   # animated conveyor stripes
-                hazard_line(d, a, b, 20)
-                L = math.dist(a, b)
-                for k in range(int(L / 40)):
-                    u = ((k * 40 + sgn * -t * 260) % L) / L
-                    p = (a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u)
-                    d.ellipse([p[0] - 4, p[1] - 4, p[0] + 4, p[1] + 4], fill=(255, 255, 255))
-            for (a, b) in lv.funnel_pts if lv.funnel else []:
-                hazard_line(d, a, b, 22)
-            if lv.hold is not None:
-                hazard_line(d, (X0, HOLD_Y), (X1, HOLD_Y), 18)
-            gl, gr = W / 2 - lv.gap / 2, W / 2 + lv.gap / 2
-            if lv.gate is not None:
-                metal_line(d, (gl - 4, GATE_Y), (gr + 4, GATE_Y), 22, (200, 60, 60))
+            if render:
+                draw_frame(lv, bg, bodies, balls, info, r, qualified, quota, li, n, final, phase, phase_t,
+                           flying, sparks, vt(), emit, W, H, long_form)
             else:
-                d.rectangle([gl, GATE_Y - 6, gr, GATE_Y + 6], fill=(60, 220, 110))
-            for kind, b, L in lv.kin:
-                if kind in ("paddle", "mover"):
-                    p0, p1 = b.local_to_world((-L, 0)), b.local_to_world((L, 0))
-                    metal_line(d, tuple(p0), tuple(p1), 22, (90, 170, 230) if kind == "paddle" else (230, 160, 60))
-                    c = b.position
-                    d.ellipse([c.x - 14, c.y - 14, c.x + 14, c.y + 14], fill=(240, 240, 245), outline=OL, width=4)
-                else:
-                    for a4 in range(4):
-                        ang = b.angle + a4 * math.pi / 2
-                        p1 = (b.position.x + L * math.cos(ang), b.position.y + L * math.sin(ang))
-                        metal_line(d, tuple(b.position), p1, 20, (180, 110, 230))
-                    c = b.position
-                    d.ellipse([c.x - 20, c.y - 20, c.x + 20, c.y + 20], fill=(240, 240, 245), outline=OL, width=4)
-            # shredder teeth spin
-            for x in range(0, W, 60):
-                for k in range(6):
-                    a = vt() * 6 * (1 if (x // 60) % 2 else -1) + k * math.pi / 3
-                    cx, cy = x + 30, SHRED_Y + 74
-                    d.polygon([(cx + 34 * math.cos(a), cy + 34 * math.sin(a)), (cx + 20 * math.cos(a + 0.3), cy + 20 * math.sin(a + 0.3)),
-                               (cx + 20 * math.cos(a - 0.3), cy + 20 * math.sin(a - 0.3))], fill=(200, 200, 210))
-            for cc, (b, s) in bodies.items():
-                spr = balls.sprite(cc, r, math.degrees(b.angle))
-                img.paste(spr, (int(b.position.x - spr.width / 2), int(b.position.y - spr.height / 2)), spr)
-                if r >= 46:
-                    d.text((b.position.x, b.position.y + r + 16), info[cc][1], font=font(30), fill=(255, 255, 255),
-                           anchor="mm", stroke_width=4, stroke_fill=OL)
-            now = vt()
-            for sp in sparks:                                             # shredder sparks
-                age = now - sp[4]
-                if 0 <= age < 0.8:
-                    x, y = sp[0] + sp[2] * age, sp[1] + sp[3] * age + 900 * age * age
-                    c = (255, int(200 - 200 * age), 40)
-                    d.rectangle([x - 4, y - 4, x + 4, y + 4], fill=c)
-            sparks[:] = [s_ for s_ in sparks if now - s_[4] < 0.8]
-            shown_q = [q for q in qualified if not any(f_[0] == q and now - f_[3] < 0.5 for f_ in flying)]
-            hud(d, "WHICH COUNTRY WINS?", None, shown_q, quota, li + 1, levels)
-            for fl in flying:                                             # qualified ball flying to its slot
-                age = now - fl[3]
-                if 0 <= age < 0.5:
-                    sz = min(56, (W - 80) / max(1, fl[5]) - 4)
-                    tx = W / 2 - (sz + 4) * fl[5] / 2 + fl[4] * (sz + 4) + sz / 2
-                    u = age / 0.5
-                    x, y = fl[1] + (tx - fl[1]) * u, fl[2] + (285 - fl[2]) * u - math.sin(u * math.pi) * 200
-                    rr = int(fl[6] + (sz / 2 - fl[6]) * u)
-                    spr = balls.sprite(fl[0], max(8, rr))
-                    img.paste(spr, (int(x - spr.width / 2), int(y - spr.height / 2)), spr)
-            if phase == "run" and 0 <= vt() - overtime_t < 1.4:
-                text_c(d, (W / 2, 1000), "OVERTIME!", 130, (255, 120, 40), stroke=12)
-                text_c(d, (W / 2, 1120), "The machine breaks apart!", 50, (255, 255, 255), stroke=6)
-            if phase == "card":
-                pop = min(1, phase_t / 0.2)
-                d.rounded_rectangle([90, 820, W - 90, 1120], 40, fill=(15, 15, 22), outline=(255, 220, 50), width=8)
-                text_c(d, (W / 2, 900), f"LEVEL {li + 1}" if quota > 1 else "THE FINAL", 110 * pop, (255, 220, 50), stroke=8)
-                text_c(d, (W / 2, 1030), f"{n} LEFT  ·  TOP {quota} QUALIFY" if quota > 1 else "FIRST THROUGH WINS!", 52, (255, 255, 255), stroke=5)
-            elif phase == "count":
-                text_c(d, (W / 2, 1000), "3" if phase_t < 0.34 else "2" if phase_t < 0.67 else "1", 280, (255, 255, 255), stroke=14)
-            elif phase in ("close", "drop") and phase_t < 1.6:
-                text_c(d, (W / 2, 1000), "GATE CLOSED!" if phase == "close" else "TRAPDOOR OPEN!", 100, (255, 80, 70), stroke=10)
-                text_c(d, (W / 2, 1110), f"{n - quota} ELIMINATED", 60, (255, 255, 255), stroke=6)
-            emit(img)
+                frame_no[0] += 1
+        if long_form and eliminated and len(alive) > 2:         # recap: who just got shredded
+            recap_s = 2.0 + min(1.5, len(eliminated) / 40)
+            if render:
+                draw_recap(eliminated, li, base_bg, balls, info, emit, W, H, recap_s)
+            else:
+                frame_no[0] += int(recap_s * FPS)
+        level_times.append(round(run_t, 1))
         history.append({"level": li + 1, "qualified": [info[c][2] for c in qualified], "eliminated": [info[c][2] for c in eliminated]})
         alive = [info[c] for c in qualified]
+        li += 1
 
-    # ---- winner
     champ = alive[0]
     events.append((vt(), "win", 0))
-    conf = [(pyr.uniform(0, W), pyr.uniform(-H, 0), pyr.uniform(250, 600), pyr.uniform(-80, 80),
-             tuple(int(v) for v in pyr.choice([(235, 59, 59), (52, 120, 246), (46, 204, 113), (250, 204, 21), (255, 255, 255)])),
-             pyr.uniform(0, 6)) for _ in range(160)]
-    for f in range(int(4.5 * FPS)):
-        tt = f / FPS
-        img = base_bg.copy()
-        d = ImageDraw.Draw(img)
-        for (cx0, cy0, vy, vx, cc, rot) in conf:
-            cx, cy = cx0 + vx * tt, cy0 + vy * tt + 300
-            if 0 < cy < H:
-                a = rot + tt * 6
-                d.polygon([(cx + 14 * math.cos(a + k * 1.57), cy + 7 * math.sin(a + k * 1.57)) for k in range(4)], fill=cc)
-        bounce = abs(math.sin(tt * 4)) * 40
-        spr = balls.sprite(champ[0], 230, math.sin(tt * 3) * 20)
-        img.paste(spr, (int(W / 2 - spr.width / 2), int(1000 - bounce - spr.height / 2)), spr)
-        pop = min(1, tt / 0.25)
-        text_c(d, (W / 2, 220), "CHAMPION", 80, (255, 220, 50), stroke=8)
-        text_c(d, (W / 2, 380), champ[2], (150 if len(champ[2]) < 9 else 105) * pop, (255, 255, 255), stroke=14)
-        text_c(d, (W / 2, 520), "WINS THE FACTORY!", 70 * pop, (255, 220, 50), stroke=8)
-        if tt > 1.0:
-            text_c(d, (W / 2, 1440), "Did your country win?", 66, (255, 255, 255), stroke=7)
-        if tt > 1.8:
-            text_c(d, (W / 2, 1530), "New race every day - Subscribe!", 52, (255, 220, 50), stroke=6)
-        emit(img)
-
-    ff.stdin.close()
-    ff.wait()
+    chapters.append((vt(), f"Champion: {champ[2].title()}"))
+    if render:
+        draw_outro(champ, base_bg, balls, emit, W, H, long_form, pyr)
+        ff.stdin.close()
+        ff.wait()
+    else:
+        frame_no[0] += int(5.0 * FPS)
     total = frame_no[0] / FPS
+    meta = {"seed": seed, "style": "factory", "world": "factory", "character": "flags", "layout": layout,
+            "countries": [c[2] for c in start], "runners": [c[2] for c in start], "winner": champ[2],
+            "eliminated": [[c, f"LEVEL {h['level']}"] for h in history for c in h["eliminated"]],
+            "levels": len(history), "level_run_seconds": level_times, "duration_s": round(total, 1),
+            "chapters": "\n".join(f"{int(t_ // 60)}:{int(t_ % 60):02d} {name_}" for t_, name_ in chapters)}
+    if not render:
+        return None, meta
     audio = build_audio(total, events, rng)
     with wave.open(wav, "wb") as wf:
         wf.setnchannels(1)
@@ -629,20 +609,242 @@ def render_video(seed, out_dir, n_start=32, preview=False):
                     "-b:a", "160k", "-shortest", "-movflags", "+faststart", mp4], check=True)
     os.remove(silent)
     os.remove(wav)
-    meta = {"seed": seed, "file": mp4, "style": "factory", "world": "factory", "character": "flags",
-            "countries": [c[2] for c in (COUNTRIES[i] for i in idx)], "winner": champ[2], "runners": [c[2] for c in (COUNTRIES[i] for i in idx)],
-            "eliminated": [[c, f"LEVEL {h['level']}"] for h in history for c in h["eliminated"]],
-            "levels": history, "duration_s": round(total, 1)}
+    meta["file"] = mp4
+    if long_form:
+        meta["thumbnail"] = stem + ".jpg"
+        make_thumbnail(meta["thumbnail"], start, balls, pyr)
     with open(stem + ".json", "w") as fh:
         json.dump(meta, fh, indent=2, ensure_ascii=False)
     return mp4, meta
+
+
+def draw_frame(lv, bg, bodies, balls, info, r, qualified, quota, li, n, final, phase, phase_t,
+               flying, sparks, now, emit, W, H, long_form):
+    img = bg.copy()
+    d = ImageDraw.Draw(img)
+    for a, b, sgn in lv.belts:
+        hazard_line(d, a, b, 20)
+        Ls = math.dist(a, b)
+        for k in range(int(Ls / 40)):
+            u = ((k * 40 + now * 280) % Ls) / Ls
+            p = (a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u)
+            d.ellipse([p[0] - 4, p[1] - 4, p[0] + 4, p[1] + 4], fill=(255, 255, 255))
+    for a, b in (lv.funnel_pts if lv.funnel else []):
+        hazard_line(d, a, b, 22)
+    if lv.hold is not None:
+        hazard_line(d, (L["X0"], L["HOLD_Y"]), (L["X1"], L["HOLD_Y"]), 18)
+    for gl, gr in lv.gates:
+        if lv.closed:
+            metal_line(d, (gl - 4, L["GATE_Y"]), (gr + 4, L["GATE_Y"]), 22, (200, 60, 60))
+        elif lv.funnel:
+            d.rectangle([gl, L["GATE_Y"] - 6, gr, L["GATE_Y"] + 6], fill=(60, 220, 110))
+    for kind, b, Lh, sgn, ph in lv.kin:
+        if kind == "paddle":
+            p0, p1 = b.local_to_world((-Lh, 0)), b.local_to_world((Lh, 0))
+            metal_line(d, tuple(p0), tuple(p1), 22, (90, 170, 230))
+        elif kind == "flipper":
+            p0, p1 = b.local_to_world((0, 0)), b.local_to_world((sgn * Lh, 0))
+            metal_line(d, tuple(p0), tuple(p1), 22, (230, 160, 60))
+        else:
+            for a4 in range(4):
+                ang = b.angle + a4 * math.pi / 2
+                p1 = (b.position.x + Lh * math.cos(ang), b.position.y + Lh * math.sin(ang))
+                metal_line(d, tuple(b.position), p1, 20, (180, 110, 230))
+        c = b.position
+        d.ellipse([c.x - 14, c.y - 14, c.x + 14, c.y + 14], fill=(240, 240, 245), outline=OL, width=4)
+    SY = L["SHRED_Y"]
+    cy0 = SY + (H - SY) / 2
+    R1 = min(34, (H - SY) / 2 - 2)
+    for x in range(0, W, 60):
+        for k in range(6):
+            a = now * 6 * (1 if (x // 60) % 2 else -1) + k * math.pi / 3
+            cx = x + 30
+            d.polygon([(cx + R1 * math.cos(a), cy0 + R1 * math.sin(a)), (cx + R1 * 0.6 * math.cos(a + 0.3), cy0 + R1 * 0.6 * math.sin(a + 0.3)),
+                       (cx + R1 * 0.6 * math.cos(a - 0.3), cy0 + R1 * 0.6 * math.sin(a - 0.3))], fill=(200, 200, 210))
+    show_labels = r >= (40 if not long_form else 30)
+    for cc, (b, s) in bodies.items():
+        spr = balls.sprite(cc, r, math.degrees(b.angle))
+        img.paste(spr, (int(b.position.x - spr.width / 2), int(b.position.y - spr.height / 2)), spr)
+        if show_labels:
+            d.text((b.position.x, b.position.y + r + 16), info[cc][1], font=font(28), fill=(255, 255, 255),
+                   anchor="mm", stroke_width=4, stroke_fill=OL)
+    for sp in sparks:
+        age = now - sp[4]
+        if 0 <= age < 0.8:
+            x, y = sp[0] + sp[2] * age, sp[1] + sp[3] * age + 900 * age * age
+            d.rectangle([x - 4, y - 4, x + 4, y + 4], fill=(255, int(200 - 200 * age), 40))
+    sparks[:] = [s_ for s_ in sparks if now - s_[4] < 0.8]
+
+    # HUD
+    if long_form:
+        text_c(d, (W / 2, 45), "WHICH COUNTRY WINS?", 60, (255, 220, 50), stroke=7)
+        y_box, sy = 100, 145
+    else:
+        text_c(d, (W / 2, 62), "WHICH COUNTRY WINS?", 74, (255, 220, 50), stroke=8)
+        y_box, sy = 180, 285
+    d.rounded_rectangle([40, y_box, 330, y_box + 56], 20, fill=(60, 66, 84))
+    text_c(d, (185, y_box + 28), "THE FINAL" if final else f"LEVEL {li + 1}", 34, (255, 255, 255), stroke=0)
+    shown_q = [q for q in qualified if not any(f_[0] == q and now - f_[3] < 0.5 for f_ in flying)]
+    d.rounded_rectangle([W - 400, y_box, W - 40, y_box + 56], 20, fill=(40, 120, 70))
+    text_c(d, (W - 220, y_box + 28), f"QUALIFIED {len(shown_q)}/{quota}", 34, (255, 255, 255), stroke=0)
+    strip = quota <= (24 if long_form else 16)
+    if strip:
+        sz = min(56, (W - 80) / max(1, quota) - 4)
+        x0 = W / 2 - (sz + 4) * quota / 2
+        for k in range(quota):
+            cx = x0 + k * (sz + 4) + sz / 2
+            if long_form and abs(cx - W / 2) > W / 2 - 440:
+                continue
+            if k < len(shown_q):
+                spr = balls.sprite(shown_q[k], sz / 2)
+                img.paste(spr, (int(cx - spr.width / 2), int(sy - spr.height / 2)), spr)
+            else:
+                d.ellipse([cx - sz / 2, sy - sz / 2, cx + sz / 2, sy + sz / 2], outline=(110, 116, 130), width=3)
+    else:                                                    # many qualifiers: progress bar + the latest flags
+        bx0, bx1 = 360, W - 430
+        d.rounded_rectangle([bx0, y_box + 14, bx1, y_box + 42], 14, fill=(30, 32, 42))
+        d.rounded_rectangle([bx0, y_box + 14, bx0 + (bx1 - bx0) * len(shown_q) / quota, y_box + 42], 14, fill=(60, 220, 110))
+        if long_form:
+            for k, cc in enumerate(shown_q[-16:]):
+                spr = balls.sprite(cc, 18)
+                img.paste(spr, (int(bx0 + 10 + k * 42), int(sy - spr.height / 2)), spr)
+    for fl in flying:
+        age = now - fl[3]
+        if 0 <= age < 0.5:
+            if strip:
+                sz = min(56, (W - 80) / max(1, fl[5]) - 4)
+                tx, ty = W / 2 - (sz + 4) * fl[5] / 2 + fl[4] * (sz + 4) + sz / 2, sy
+            else:
+                sz, tx, ty = 32, W - 220, y_box + 28
+            u = age / 0.5
+            x, y = fl[1] + (tx - fl[1]) * u, fl[2] + (ty - fl[2]) * u - math.sin(u * math.pi) * 150
+            spr = balls.sprite(fl[0], max(8, fl[6] + (sz / 2 - fl[6]) * u))
+            img.paste(spr, (int(x - spr.width / 2), int(y - spr.height / 2)), spr)
+    flying[:] = [f_ for f_ in flying if now - f_[3] < 0.6]
+    cy = (L["HOLD_Y"] + L["FUN_Y"]) / 2
+    if phase == "card":
+        pop = min(1, phase_t / 0.2)
+        bw = 440 if long_form else W / 2 - 90
+        d.rounded_rectangle([W / 2 - bw, cy - 150, W / 2 + bw, cy + 150], 40, fill=(15, 15, 22), outline=(255, 220, 50), width=8)
+        text_c(d, (W / 2, cy - 60), "THE FINAL" if final else f"LEVEL {li + 1}", 110 * pop, (255, 220, 50), stroke=8)
+        text_c(d, (W / 2, cy + 70), f"{n} LEFT  ·  TOP {quota} QUALIFY" if not final else "FIRST THROUGH WINS!", 52, (255, 255, 255), stroke=5)
+    elif phase == "count":
+        text_c(d, (W / 2, cy), "3" if phase_t < 0.3 else "2" if phase_t < 0.6 else "1", 260, (255, 255, 255), stroke=14)
+    elif phase in ("close", "drop") and phase_t < 1.6:
+        text_c(d, (W / 2, cy - 40), "GATE CLOSED!" if phase == "close" else "TRAPDOOR OPEN!", 100, (255, 80, 70), stroke=10)
+        text_c(d, (W / 2, cy + 70), f"{n - quota} ELIMINATED", 60, (255, 255, 255), stroke=6)
+    emit(img)
+
+
+def pick_seed(base_seed, n_start, layout, lo, hi, max_level_s, tries=25):
+    """Test-runs the physics (fast, no rendering) and returns the first seed whose video fits [lo, hi] seconds
+    and whose slowest level is under max_level_s - so every published video flows smoothly."""
+    best = None
+    for k in range(tries):
+        s = base_seed * 100 + k
+        try:
+            _, m = render_video(s, "/tmp", n_start, layout, render=False)
+        except RuntimeError:
+            continue
+        ok = lo <= m["duration_s"] <= hi and max(m["level_run_seconds"]) <= max_level_s
+        if ok:
+            return s, m
+        if best is None or max(m["level_run_seconds"]) < max(best[1]["level_run_seconds"]):
+            best = (s, m)
+    return best
+
+
+def draw_recap(eliminated, li, base_bg, balls, info, emit, W, H, seconds):
+    n = len(eliminated)
+    cols = max(6, int(math.ceil(math.sqrt(n * 2.6))))
+    rows = math.ceil(n / cols)
+    cell = min((W - 120) / cols, (H - 300) / max(1, rows), 150)
+    bg = base_bg.copy()
+    ov = Image.new("RGB", (W, H), (10, 8, 12))
+    bg = Image.blend(bg, ov, 0.75)
+    for f in range(int(seconds * FPS)):
+        img = bg.copy()
+        d = ImageDraw.Draw(img)
+        pop = min(1, f / 6)
+        text_c(d, (W / 2, 80), f"ELIMINATED IN LEVEL {li + 1}", 76 * pop, (255, 80, 70), stroke=8)
+        text_c(d, (W / 2, 160), f"{n} countries went into the shredder", 40, (255, 255, 255), stroke=5)
+        shown = int(min(n, (f + 1) * n / (FPS * 0.8)))
+        for k, cc in enumerate(eliminated[:shown]):
+            cx = W / 2 + ((k % cols) - (cols - 1) / 2) * cell
+            cy = 240 + (k // cols + 0.5) * cell
+            spr = balls.sprite(cc, cell * 0.33)
+            img.paste(spr, (int(cx - spr.width / 2), int(cy - spr.height / 2 - cell * 0.1)), spr)
+            d.line([(cx - cell * 0.25, cy - cell * 0.35), (cx + cell * 0.25, cy + cell * 0.15)], fill=(255, 60, 60), width=4)
+            d.text((cx, cy + cell * 0.3), info[cc][1], font=font(max(12, cell * 0.2)), fill=(230, 230, 230), anchor="mm",
+                   stroke_width=3, stroke_fill=OL)
+        emit(img)
+
+
+def draw_outro(champ, base_bg, balls, emit, W, H, long_form, pyr):
+    conf = [(pyr.uniform(0, W), pyr.uniform(-H, 0), pyr.uniform(250, 600), pyr.uniform(-80, 80),
+             pyr.choice([(235, 59, 59), (52, 120, 246), (46, 204, 113), (250, 204, 21), (255, 255, 255)]), pyr.uniform(0, 6))
+            for _ in range(200)]
+    name = champ[2]
+    for f in range(int(5.0 * FPS)):
+        tt = f / FPS
+        img = base_bg.copy()
+        d = ImageDraw.Draw(img)
+        for (cx0, cy0, vy, vx, cc, rot) in conf:
+            cx, cy = cx0 + vx * tt, cy0 + vy * tt + 300
+            if 0 < cy < H:
+                a = rot + tt * 6
+                d.polygon([(cx + 14 * math.cos(a + k * 1.57), cy + 7 * math.sin(a + k * 1.57)) for k in range(4)], fill=cc)
+        bounce = abs(math.sin(tt * 4)) * 40
+        pop = min(1, tt / 0.25)
+        if long_form:
+            spr = balls.sprite(champ[0], 250, math.sin(tt * 3) * 20)
+            img.paste(spr, (int(W * 0.28 - spr.width / 2), int(H * 0.55 - bounce - spr.height / 2)), spr)
+            tx = W * 0.68
+            text_c(d, (tx, 260), "CHAMPION OF THE WORLD", 64, (255, 220, 50), stroke=8)
+            text_c(d, (tx, 420), name, (150 if len(name) < 10 else 100) * pop, (255, 255, 255), stroke=14)
+            if tt > 1.0:
+                text_c(d, (tx, 620), "Did your country win?", 60, (255, 255, 255), stroke=7)
+            if tt > 1.8:
+                text_c(d, (tx, 720), "New factory every day - Subscribe!", 48, (255, 220, 50), stroke=6)
+        else:
+            spr = balls.sprite(champ[0], 230, math.sin(tt * 3) * 20)
+            img.paste(spr, (int(W / 2 - spr.width / 2), int(1000 - bounce - spr.height / 2)), spr)
+            text_c(d, (W / 2, 220), "CHAMPION", 80, (255, 220, 50), stroke=8)
+            text_c(d, (W / 2, 380), name, (150 if len(name) < 9 else 100) * pop, (255, 255, 255), stroke=14)
+            text_c(d, (W / 2, 520), "WINS THE FACTORY!", 70 * pop, (255, 220, 50), stroke=8)
+            if tt > 1.0:
+                text_c(d, (W / 2, 1440), "Did your country win?", 66, (255, 255, 255), stroke=7)
+            if tt > 1.8:
+                text_c(d, (W / 2, 1530), "New race every day - Subscribe!", 52, (255, 220, 50), stroke=6)
+        emit(img)
+
+
+def make_thumbnail(path, start, balls, pyr):
+    W, H = 1920, 1080
+    img = Image.new("RGB", (W, H), (25, 28, 40))
+    d = ImageDraw.Draw(img)
+    for y in range(H):
+        d.line([(0, y), (W, y)], fill=(int(25 + 40 * y / H), 28, int(40 + 30 * y / H)))
+    sample = list(start)
+    pyr.shuffle(sample)
+    for c in sample[:70]:                                    # a pile of flag balls
+        x, y, rr = pyr.uniform(40, W - 40), pyr.uniform(600, H + 40), pyr.uniform(55, 85)
+        spr = balls.sprite(c[0], rr)
+        img.paste(spr, (int(x - spr.width / 2), int(y - spr.height / 2)), spr)
+    text_c(d, (W / 2, 150), f"{len(start)} COUNTRIES", 170, (255, 220, 50), stroke=16)
+    text_c(d, (W / 2, 330), "ONLY 1 SURVIVES", 130, (255, 255, 255), stroke=14)
+    text_c(d, (W / 2, 470), "THE FACTORY", 90, (255, 90, 70), stroke=10)
+    img.resize((1280, 720), Image.LANCZOS).save(path, quality=92)
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--out", default="out")
-    ap.add_argument("--countries", type=int, default=32, choices=[8, 16, 32, 64])
+    ap.add_argument("--long", action="store_true", help="landscape 2-3 min video with all countries")
+    ap.add_argument("--countries", type=int, default=None)
     ap.add_argument("--preview", action="store_true")
     a = ap.parse_args()
-    print(json.dumps(render_video(a.seed, a.out, a.countries, a.preview)[1], indent=2, ensure_ascii=False))
+    n = a.countries or (len(COUNTRIES) if a.long else 32)
+    m = render_video(a.seed, a.out, n, "landscape" if a.long else "portrait", a.preview)[1]
+    print(json.dumps(m, indent=2, ensure_ascii=False))

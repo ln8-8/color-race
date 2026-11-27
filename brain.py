@@ -18,7 +18,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, "data")
 PT = ZoneInfo("America/Los_Angeles")          # YouTube quota resets at midnight Pacific time
 
-UPLOAD_RESERVE = 6 * 1600 + 50 + 50            # units the daily upload run needs
+UPLOAD_RESERVE = int(os.environ.get("UPLOADS_PER_DAY", "7")) * 1600 + 100   # units the daily upload run needs
 
 
 # ---------------------------------------------------------------- persistence

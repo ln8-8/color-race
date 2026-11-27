@@ -1,8 +1,9 @@
-"""The daily agent: renders today's Shorts + one long tournament video and uploads/schedules them on YouTube.
+"""The daily agent: renders today's Shorts + long videos and uploads/schedules them on YouTube.
 
 Env vars (all optional):
-  SHORT_TIMES_UTC  HH:MM list, one Short per time   (default "09:00,13:00,17:00,21:00")
-  LONG_TIME_UTC    HH:MM for the long video, or "off" (default "16:00")
+  SHORT_TIMES_UTC  HH:MM list, one Short per time       (default "08:00,11:00,14:00,17:00,20:00")
+  LONG_TIMES_UTC   HH:MM list, one long video per time  (default "15:00,19:00"; "off" = none)
+  LONG_FORMAT      "factory" (all countries, 2-3 min, default) or "tournament" (color race tournament)
   STYLES           styles cycled over the Shorts     (default "3d,2d,2d,3d,2d" -> 2x 3D + 3x 2D)
   UPLOAD           "0" = only render, don't upload
   YT_CLIENT_ID / YT_CLIENT_SECRET / YT_REFRESH_TOKEN  for uploading
@@ -57,6 +58,22 @@ Today's champion: watch till the end!
 New race every day — subscribe and see if your country survives tomorrow.
 
 #shorts #countryballs #countries #marblerace #flags #whowillwin"""
+LONG_FACTORY_TITLES = [
+    "ALL {n} COUNTRIES in the Factory — Only ONE Survives! 🌍🏭",
+    "{n} Countries Enter the Shredder Factory… Who Wins? 🏆",
+    "Every Country in the World Races — Only 1 Champion! 🌍",
+    "{n} Country Balls Elimination Race — Find Your Country! 🏁",
+]
+LONG_FACTORY_DESCRIPTION = """ALL {n} countries of the world drop through the factory. Every level the slowest third goes into the SHREDDER.
+Find your country and comment how far it got! 👇
+
+Chapters:
+{chapters}
+
+New factory every day — subscribe and see if your country becomes champion!
+
+#countries #countryballs #marblerace #flags #elimination #whowillwin"""
+LONG_FACTORY_TAGS = ["all countries", "countries race", "country balls", "flags", "marble race", "elimination", "who will win"]
 FACTORY_TAGS = ["countries", "country balls", "flags", "marble race", "elimination", "who will win", "shorts", "satisfying"]
 TAGS = ["pick a color", "color race", "who will win", "survival race", "shorts", "satisfying", "race simulation", "choose your color"]
 LONG_TAGS = ["color race tournament", "pick a color", "who will win", "marble race", "race simulation", "tournament", "satisfying"]
@@ -73,8 +90,10 @@ def main():
     now = dt.datetime.now(dt.timezone.utc)
     today = now.date()
     day = (today - EPOCH).days
-    times = [t.strip() for t in os.environ.get("SHORT_TIMES_UTC", "09:00,13:00,17:00,21:00").split(",") if t.strip()]
-    long_time = os.environ.get("LONG_TIME_UTC", "16:00").strip()
+    times = [t.strip() for t in os.environ.get("SHORT_TIMES_UTC", "08:00,11:00,14:00,17:00,20:00").split(",") if t.strip()]
+    long_raw = os.environ.get("LONG_TIMES_UTC", os.environ.get("LONG_TIME_UTC", "15:00,19:00")).strip()
+    long_times = [] if long_raw == "off" else [t.strip() for t in long_raw.split(",") if t.strip()]
+    long_format = os.environ.get("LONG_FORMAT", "factory")
     styles = [x.strip() for x in os.environ.get("STYLES", "3d,2d,2d,3d,2d").split(",") if x.strip()]
     do_upload = os.environ.get("UPLOAD", "1") != "0" and bool(os.environ.get("YT_REFRESH_TOKEN"))
     out_dir = os.path.join("out", today.isoformat())
@@ -85,7 +104,7 @@ def main():
     if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and state.get("last_daily") == today.isoformat():
         print(f"== {today} already done earlier today - skipping this scheduled run")
         return
-    print(f"== {today}: {len(times)} shorts + {'no' if long_time == 'off' else '1'} long video, upload={do_upload}, "
+    print(f"== {today}: {len(times)} shorts + {len(long_times)} long videos ({long_format}), upload={do_upload}, "
           f"memory={len(videos)} videos")
     log, failed = [], 0
     n3d = 0
@@ -138,7 +157,8 @@ def main():
             if style == "2d":                                       # 2D = the Flag Factory format
                 world, character, who = "factory", "flags", "Countries"
                 print("   -> 2d flag factory", flush=True)
-                path, meta = factory2d.render_video(seed, out_dir)
+                fseed, _ = factory2d.pick_seed(seed, 32, "portrait", 35, 75, 12)    # pre-tested: flows smoothly
+                path, meta = factory2d.render_video(fseed, out_dir, 32, "portrait", name=f"factory_short_{seed}")
             else:
                 camera = brain.choose(videos, "camera", ["behind", "cinematic"], "behind" if n3d % 2 == 0 else "cinematic", rng)
                 n3d += 1
@@ -160,22 +180,32 @@ def main():
             traceback.print_exc()
             log.append({"kind": "short", "slot": hhmm, "error": str(e)[:300]})
 
-    # ---- render the long video: the daily tournament
-    if long_time != "off":
+    # ---- render the long videos (2-3 min): ALL countries in the Flag Factory
+    for j, lt in enumerate(long_times):
         try:
-            print("-- long video: tournament", flush=True)
-            character = brain.best(videos, "character", CHARACTER_ORDER, CHARACTER_ORDER[day % len(CHARACTER_ORDER)])
-            path, meta = tournament.make_tournament(int(today.strftime("%Y%m%d")) * 10 + 9, out_dir, character,
-                                                    start_world=day % len(WORLD_ORDER), race_no=day + 1)
-            entry = {"kind": "long", "publish_at": at_time(today, long_time, now) or "now", **meta}
-            jobs.append((0, entry, (path, meta["title"], meta["description"], LONG_TAGS, at_time(today, long_time, now),
-                                    meta["thumbnail"]), "long",
-                         {"character": character, "champion": meta["champion"], "entrants": meta["entrants"],
-                          "winner": meta["champion"]}))
+            lseed = int(today.strftime("%Y%m%d")) * 10 + 5 + j
+            print(f"-- long video {j + 1}/{len(long_times)}: {long_format}", flush=True)
+            if long_format == "tournament":
+                character = brain.best(videos, "character", CHARACTER_ORDER, CHARACTER_ORDER[day % len(CHARACTER_ORDER)])
+                path, meta = tournament.make_tournament(lseed, out_dir, character, start_world=(day + j) % len(WORLD_ORDER),
+                                                        race_no=day * len(long_times) + j + 1)
+                extra = {"character": character, "champion": meta["champion"], "entrants": meta["entrants"], "winner": meta["champion"]}
+                title, desc, tags = meta["title"], meta["description"], LONG_TAGS
+            else:
+                fseed, _ = factory2d.pick_seed(lseed, 999, "landscape", 120, 180, 20)   # pre-tested: 2-3 min, no jams
+                path, meta = factory2d.render_video(fseed, out_dir, 999, "landscape", name=f"factory_long_{lseed}")
+                n_c = len(meta["countries"])
+                title = random.Random(lseed).choice(LONG_FACTORY_TITLES).format(n=n_c)
+                desc = LONG_FACTORY_DESCRIPTION.format(n=n_c, chapters=meta["chapters"])
+                tags = LONG_FACTORY_TAGS
+                extra = {"format": "factory", "style": "factory-long", "winner": meta["winner"],
+                         "eliminated": meta["eliminated"], "runners": meta["runners"]}
+            entry = {"kind": "long", "title": title, "publish_at": at_time(today, lt, now) or "now", **meta}
+            jobs.append((0 + j * 0.1, entry, (path, title, desc, tags, at_time(today, lt, now), meta.get("thumbnail")), "long", extra))
         except Exception as e:
             failed += 1
             traceback.print_exc()
-            log.append({"kind": "long", "error": str(e)[:300]})
+            log.append({"kind": "long", "slot": lt, "error": str(e)[:300]})
 
     # ---- upload: most valuable first (tournament, then Shorts in order); stop at YouTube's daily upload limit
     limit_hit, pending = False, []
@@ -190,7 +220,7 @@ def main():
                 if kind == "long" and entry.get("video_id") and not entry.get("thumbnail_error"):
                     brain.spend(state, 50)
             except Exception as e:
-                if "uploadLimitExceeded" in str(e) or "exceeded the number of videos" in str(e):
+                if any(k in str(e) for k in ("uploadLimitExceeded", "exceeded the number of videos", "quotaExceeded")):
                     limit_hit = True
                     print("!! YouTube says this channel reached its upload limit for now - the rest are kept for manual upload")
                     entry["status"] = "NOT UPLOADED (daily upload limit) - upload by hand from the run's Artifacts"
