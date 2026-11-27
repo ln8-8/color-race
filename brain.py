@@ -141,10 +141,72 @@ def colors_in(text):
     return found
 
 
+COUNTRY_ALIASES = {"UNITED STATES": "USA", "AMERICA": "USA", "ENGLAND": "UK", "BRITAIN": "UK", "UNITED KINGDOM": "UK",
+                   "SCOTLAND": "UK", "WALES": "UK", "KOREA": "SOUTH KOREA", "CZECH REPUBLIC": "CZECHIA", "HOLLAND": "NETHERLANDS",
+                   "DOMINICAN REPUBLIC": "DOMINICAN REP.", "COTE D'IVOIRE": "IVORY COAST", "TURKIYE": "TURKEY", "TÜRKIYE": "TURKEY",
+                   "BOSNIA AND HERZEGOVINA": "BOSNIA", "EMIRATES": "UAE", "DEUTSCHLAND": "GERMANY", "ESPAÑA": "SPAIN",
+                   "BRASIL": "BRAZIL", "MÉXICO": "MEXICO", "HAYASTAN": "ARMENIA", "ՀԱՅԱՍՏԱՆ": "ARMENIA", "BHARAT": "INDIA",
+                   "NIPPON": "JAPAN", "PERÚ": "PERU"}
+
+
+def countries_in(text):
+    """Country names mentioned in a comment (names, common aliases and flag emoji)."""
+    try:
+        from countries import COUNTRIES
+    except Exception:
+        return []
+    up = text.upper()
+    found = []
+    for cc, lab, name in COUNTRIES:
+        if re.search(r"(?<![A-Z])" + re.escape(name) + r"(?![A-Z])", up) or (len(lab) == 3 and re.search(r"\b" + lab + r"\b", text)):
+            found.append(name)
+    for alias, name in COUNTRY_ALIASES.items():
+        if alias in up and name not in found:
+            found.append(name)
+    for a, b in re.findall("([\U0001F1E6-\U0001F1FF])([\U0001F1E6-\U0001F1FF])", text):
+        cc = chr(ord(a) - 0x1F1E6 + 65) + chr(ord(b) - 0x1F1E6 + 65)
+        name = next((n for c, _, n in COUNTRIES if c == cc), None)
+        if name and name not in found:
+            found.append(name)
+    return found
+
+
+def factory_reply(text, video, rng):
+    picks = countries_in(text)
+    winner = video.get("winner") or ""
+    if not picks:
+        return None
+    c = picks[0]
+    nice = c.title() if len(c) > 3 else c
+    win = winner.title() if len(winner) > 3 else winner
+    if c == winner:
+        return rng.choice([f"🏆 {nice} WON the whole factory! You called it!", f"Champion {nice}! 🏆 What a run!",
+                           f"{nice} survived every level and took the crown 👑🔥"])
+    out = {n: lv for n, lv in video.get("eliminated", [])}
+    if c in out:
+        lv = str(out[c]).replace("LEVEL ", "")
+        if lv == "1":
+            return rng.choice([f"{nice} got shredded in level 1 😭 Revenge tomorrow?",
+                               f"Oof, {nice} didn't make it past level 1… next time! 💪"])
+        return rng.choice([f"{nice} made it to level {lv} before the shredder got it 😢 So close!",
+                           f"Respect — {nice} survived until level {lv}! {win} won this one 🏆",
+                           f"{nice} reached level {lv}! 🔥 Maybe the crown tomorrow?"])
+    if video.get("runners") and c not in video["runners"]:
+        return rng.choice([f"{nice} wasn't in this one 👀 Maybe in tomorrow's factory!",
+                           f"No {nice} today 😅 Watch for it tomorrow!"])
+    return rng.choice([f"Go {nice}! 🔥", f"Team {nice}! 🌍 New factory every day!"])
+
+
 def make_reply(text, video, rng):
     """A short, varied reply based on what actually happened in that video's race."""
     if re.search(r"https?://|www\.", text, re.I):
         return None                                            # never engage with links/spam
+    if (video or {}).get("format") == "factory":
+        r = factory_reply(text, video, rng)
+        if r:
+            return r
+        return rng.choice(["Thanks for watching! 🌍 Which country do you pick next time?",
+                           "Comment your country before the next factory starts! 🏭", "❤️ Thanks! New factory every day!"])
     winner = (video or {}).get("winner") or (video or {}).get("champion")
     elim = {c: k for c, k in (video or {}).get("eliminated", [])}
     raced = set((video or {}).get("runners") or (video or {}).get("entrants") or [])

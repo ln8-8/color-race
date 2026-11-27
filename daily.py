@@ -16,6 +16,7 @@ import traceback
 
 import brain
 import render
+import factory2d
 import render2d
 import tournament
 
@@ -41,6 +42,22 @@ Today's track: {place}. {n_runners} {who}. Meteors, lightning, landmines, trapdo
 New races every day — subscribe so you don't miss your color's revenge.
 
 #shorts #pickacolor #colorrace #race #whowillwin #satisfying"""
+FACTORY_TITLES = [
+    "Which Country Survives the Factory? 🏭 #shorts",
+    "32 Countries Enter, Only ONE Survives! 🌍 #shorts",
+    "Find Your Country! Will It Survive? 🏭 #shorts",
+    "Country Ball Elimination — Who Wins? 🏆 #shorts",
+    "Comment Your Country BEFORE Level 1! 🌍 #shorts",
+    "The Factory Shredder Decides the Champion! ⚙️ #shorts",
+]
+FACTORY_DESCRIPTION = """Find your country and comment it below! 👇
+32 country balls drop through the factory. Each level only the first half gets through the gate. The rest go to the SHREDDER.
+Today's champion: watch till the end!
+
+New race every day — subscribe and see if your country survives tomorrow.
+
+#shorts #countryballs #countries #marblerace #flags #whowillwin"""
+FACTORY_TAGS = ["countries", "country balls", "flags", "marble race", "elimination", "who will win", "shorts", "satisfying"]
 TAGS = ["pick a color", "color race", "who will win", "survival race", "shorts", "satisfying", "race simulation", "choose your color"]
 LONG_TAGS = ["color race tournament", "pick a color", "who will win", "marble race", "race simulation", "tournament", "satisfying"]
 
@@ -118,19 +135,26 @@ def main():
             who = CHARACTER_WORD[character]
             camera = None
             print(f"-- short {i + 1}/{len(times)}: {style} {world} {character}", flush=True)
-            if style == "2d":
-                path, meta = render2d.render_video(seed, out_dir, world=world, character=character)
+            if style == "2d":                                       # 2D = the Flag Factory format
+                world, character, who = "factory", "flags", "Countries"
+                print("   -> 2d flag factory", flush=True)
+                path, meta = factory2d.render_video(seed, out_dir)
             else:
                 camera = brain.choose(videos, "camera", ["behind", "cinematic"], "behind" if n3d % 2 == 0 else "cinematic", rng)
                 n3d += 1
                 path, meta = render.render_video(seed, out_dir, world=world, character=character, camera=camera)
-            title = random.Random(seed).choice(TITLES).format(n=race_no, who=who)
-            desc = DESCRIPTION.format(n_runners=len(meta["runners"]), place=world.upper(), who=who)
+            if style == "2d":
+                title = random.Random(seed).choice(FACTORY_TITLES)
+                desc, tags = FACTORY_DESCRIPTION, FACTORY_TAGS
+            else:
+                title = random.Random(seed).choice(TITLES).format(n=race_no, who=who)
+                desc, tags = DESCRIPTION.format(n_runners=len(meta["runners"]), place=world.upper(), who=who), TAGS
             entry = {"kind": "short", "race": race_no, "title": title, "description": desc,
                      "publish_at": at_time(today, hhmm, now) or "now", **meta}
-            jobs.append((1 + i, entry, (path, title, desc, TAGS, at_time(today, hhmm, now), None), "short",
+            jobs.append((1 + i, entry, (path, title, desc, tags, at_time(today, hhmm, now), None), "short",
                          {"style": style, "world": world, "character": character, **({"camera": camera} if camera else {}),
-                          "winner": meta["winner"], "eliminated": meta["eliminated"], "runners": meta["runners"]}))
+                          "winner": meta["winner"], "eliminated": meta["eliminated"], "runners": meta["runners"],
+                          **({"format": "factory"} if style == "2d" else {})}))
         except Exception as e:
             failed += 1
             traceback.print_exc()

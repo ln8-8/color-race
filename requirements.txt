@@ -2,3 +2,4 @@ numpy>=1.26
 pillow>=10.0
 google-api-python-client>=2.100
 google-auth>=2.23
+pymunk==6.8.1
