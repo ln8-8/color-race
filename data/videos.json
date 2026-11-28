@@ -5100,5 +5100,693 @@
    "likes": 0,
    "comments": 0
   }
+ },
+ {
+  "video_id": "hiYPnlcK7f8",
+  "kind": "short",
+  "title": "Country Ball Elimination: Deep Sea Edition 🏆 #shorts",
+  "source_file": "factory_short_202611281.mp4",
+  "published": "2026-11-28T11:00:00Z",
+  "style": "factory",
+  "world": "sea",
+  "character": "flags",
+  "winner": "BOLIVIA",
+  "eliminated": [
+   [
+    "SURINAME",
+    "LEVEL 1"
+   ],
+   [
+    "SOUTH KOREA",
+    "LEVEL 1"
+   ],
+   [
+    "BAHRAIN",
+    "LEVEL 1"
+   ],
+   [
+    "ESWATINI",
+    "LEVEL 1"
+   ],
+   [
+    "TANZANIA",
+    "LEVEL 1"
+   ],
+   [
+    "KAZAKHSTAN",
+    "LEVEL 1"
+   ],
+   [
+    "SERBIA",
+    "LEVEL 1"
+   ],
+   [
+    "MOLDOVA",
+    "LEVEL 1"
+   ],
+   [
+    "VENEZUELA",
+    "LEVEL 1"
+   ],
+   [
+    "NEPAL",
+    "LEVEL 1"
+   ],
+   [
+    "SUDAN",
+    "LEVEL 1"
+   ],
+   [
+    "IRAN",
+    "LEVEL 1"
+   ],
+   [
+    "PORTUGAL",
+    "LEVEL 1"
+   ],
+   [
+    "GABON",
+    "LEVEL 1"
+   ],
+   [
+    "GUATEMALA",
+    "LEVEL 1"
+   ],
+   [
+    "UGANDA",
+    "LEVEL 1"
+   ],
+   [
+    "NAURU",
+    "LEVEL 2"
+   ],
+   [
+    "DOMINICAN REP.",
+    "LEVEL 2"
+   ],
+   [
+    "EGYPT",
+    "LEVEL 2"
+   ],
+   [
+    "TONGA",
+    "LEVEL 2"
+   ],
+   [
+    "IRAQ",
+    "LEVEL 2"
+   ],
+   [
+    "SAMOA",
+    "LEVEL 2"
+   ],
+   [
+    "KENYA",
+    "LEVEL 2"
+   ],
+   [
+    "GAMBIA",
+    "LEVEL 2"
+   ],
+   [
+    "CANADA",
+    "LEVEL 3"
+   ],
+   [
+    "VATICAN",
+    "LEVEL 3"
+   ],
+   [
+    "MALAYSIA",
+    "LEVEL 3"
+   ],
+   [
+    "SAINT VINCENT",
+    "LEVEL 3"
+   ],
+   [
+    "ARMENIA",
+    "LEVEL 4"
+   ],
+   [
+    "CAMEROON",
+    "LEVEL 4"
+   ],
+   [
+    "SYRIA",
+    "LEVEL 5"
+   ]
+  ],
+  "runners": [
+   "NAURU",
+   "CAMEROON",
+   "VATICAN",
+   "KAZAKHSTAN",
+   "SERBIA",
+   "BOLIVIA",
+   "ARMENIA",
+   "CANADA",
+   "GUATEMALA",
+   "MOLDOVA",
+   "VENEZUELA",
+   "KENYA",
+   "TONGA",
+   "GAMBIA",
+   "EGYPT",
+   "SYRIA",
+   "SURINAME",
+   "SOUTH KOREA",
+   "ESWATINI",
+   "SAMOA",
+   "DOMINICAN REP.",
+   "UGANDA",
+   "PORTUGAL",
+   "TANZANIA",
+   "GABON",
+   "IRAN",
+   "SAINT VINCENT",
+   "MALAYSIA",
+   "BAHRAIN",
+   "NEPAL",
+   "SUDAN",
+   "IRAQ"
+  ],
+  "format": "factory"
+ },
+ {
+  "video_id": "7RdzOiZefyk",
+  "kind": "short",
+  "title": "Comment Your Country BEFORE Level 1! 🌃 #shorts",
+  "source_file": "factory_short_202611282.mp4",
+  "published": "2026-11-28T14:00:00Z",
+  "style": "factory",
+  "world": "neon",
+  "character": "flags",
+  "winner": "ZIMBABWE",
+  "eliminated": [
+   [
+    "ROMANIA",
+    "LEVEL 1"
+   ],
+   [
+    "TONGA",
+    "LEVEL 1"
+   ],
+   [
+    "MAURITIUS",
+    "LEVEL 1"
+   ],
+   [
+    "ESWATINI",
+    "LEVEL 1"
+   ],
+   [
+    "MARSHALL ISLANDS",
+    "LEVEL 1"
+   ],
+   [
+    "TRINIDAD & TOBAGO",
+    "LEVEL 1"
+   ],
+   [
+    "AFGHANISTAN",
+    "LEVEL 1"
+   ],
+   [
+    "TUNISIA",
+    "LEVEL 1"
+   ],
+   [
+    "LIBYA",
+    "LEVEL 1"
+   ],
+   [
+    "LIECHTENSTEIN",
+    "LEVEL 1"
+   ],
+   [
+    "LUXEMBOURG",
+    "LEVEL 1"
+   ],
+   [
+    "GHANA",
+    "LEVEL 1"
+   ],
+   [
+    "ARGENTINA",
+    "LEVEL 1"
+   ],
+   [
+    "MOLDOVA",
+    "LEVEL 1"
+   ],
+   [
+    "BELARUS",
+    "LEVEL 1"
+   ],
+   [
+    "CZECHIA",
+    "LEVEL 1"
+   ],
+   [
+    "SOUTH AFRICA",
+    "LEVEL 2"
+   ],
+   [
+    "YEMEN",
+    "LEVEL 2"
+   ],
+   [
+    "GEORGIA",
+    "LEVEL 2"
+   ],
+   [
+    "DOMINICA",
+    "LEVEL 2"
+   ],
+   [
+    "TUVALU",
+    "LEVEL 2"
+   ],
+   [
+    "FINLAND",
+    "LEVEL 2"
+   ],
+   [
+    "SOLOMON ISLANDS",
+    "LEVEL 2"
+   ],
+   [
+    "BULGARIA",
+    "LEVEL 2"
+   ],
+   [
+    "VENEZUELA",
+    "LEVEL 3"
+   ],
+   [
+    "MAURITANIA",
+    "LEVEL 3"
+   ],
+   [
+    "VANUATU",
+    "LEVEL 3"
+   ],
+   [
+    "CHINA",
+    "LEVEL 3"
+   ],
+   [
+    "LATVIA",
+    "LEVEL 4"
+   ],
+   [
+    "EGYPT",
+    "LEVEL 4"
+   ],
+   [
+    "COSTA RICA",
+    "LEVEL 5"
+   ]
+  ],
+  "runners": [
+   "CHINA",
+   "FINLAND",
+   "VENEZUELA",
+   "MOLDOVA",
+   "TRINIDAD & TOBAGO",
+   "TONGA",
+   "LATVIA",
+   "MARSHALL ISLANDS",
+   "LUXEMBOURG",
+   "SOLOMON ISLANDS",
+   "COSTA RICA",
+   "BULGARIA",
+   "SOUTH AFRICA",
+   "DOMINICA",
+   "MAURITANIA",
+   "MAURITIUS",
+   "GHANA",
+   "TUNISIA",
+   "ZIMBABWE",
+   "AFGHANISTAN",
+   "ARGENTINA",
+   "BELARUS",
+   "ROMANIA",
+   "EGYPT",
+   "VANUATU",
+   "TUVALU",
+   "GEORGIA",
+   "YEMEN",
+   "ESWATINI",
+   "CZECHIA",
+   "LIBYA",
+   "LIECHTENSTEIN"
+  ],
+  "format": "factory"
+ },
+ {
+  "video_id": "Me51RGU95AQ",
+  "kind": "short",
+  "title": "Country Ball Elimination: Factory Edition 🏆 #shorts",
+  "source_file": "factory_short_202611283.mp4",
+  "published": "2026-11-28T17:00:00Z",
+  "style": "factory",
+  "world": "factory",
+  "character": "flags",
+  "winner": "SIERRA LEONE",
+  "eliminated": [
+   [
+    "NEW ZEALAND",
+    "LEVEL 1"
+   ],
+   [
+    "TUNISIA",
+    "LEVEL 1"
+   ],
+   [
+    "LAOS",
+    "LEVEL 1"
+   ],
+   [
+    "LIBERIA",
+    "LEVEL 1"
+   ],
+   [
+    "COMOROS",
+    "LEVEL 1"
+   ],
+   [
+    "NORTH MACEDONIA",
+    "LEVEL 1"
+   ],
+   [
+    "EQUATORIAL GUINEA",
+    "LEVEL 1"
+   ],
+   [
+    "LESOTHO",
+    "LEVEL 1"
+   ],
+   [
+    "CROATIA",
+    "LEVEL 1"
+   ],
+   [
+    "GEORGIA",
+    "LEVEL 1"
+   ],
+   [
+    "SAINT KITTS & NEVIS",
+    "LEVEL 1"
+   ],
+   [
+    "USA",
+    "LEVEL 1"
+   ],
+   [
+    "MOZAMBIQUE",
+    "LEVEL 1"
+   ],
+   [
+    "LITHUANIA",
+    "LEVEL 1"
+   ],
+   [
+    "JAMAICA",
+    "LEVEL 1"
+   ],
+   [
+    "MONACO",
+    "LEVEL 1"
+   ],
+   [
+    "NETHERLANDS",
+    "LEVEL 2"
+   ],
+   [
+    "IRAQ",
+    "LEVEL 2"
+   ],
+   [
+    "TRINIDAD & TOBAGO",
+    "LEVEL 2"
+   ],
+   [
+    "COLOMBIA",
+    "LEVEL 2"
+   ],
+   [
+    "SEYCHELLES",
+    "LEVEL 2"
+   ],
+   [
+    "CAMBODIA",
+    "LEVEL 2"
+   ],
+   [
+    "TOGO",
+    "LEVEL 2"
+   ],
+   [
+    "PHILIPPINES",
+    "LEVEL 2"
+   ],
+   [
+    "UZBEKISTAN",
+    "LEVEL 3"
+   ],
+   [
+    "CANADA",
+    "LEVEL 3"
+   ],
+   [
+    "DJIBOUTI",
+    "LEVEL 3"
+   ],
+   [
+    "LEBANON",
+    "LEVEL 3"
+   ],
+   [
+    "RUSSIA",
+    "LEVEL 4"
+   ],
+   [
+    "IRAN",
+    "LEVEL 4"
+   ],
+   [
+    "MALI",
+    "LEVEL 5"
+   ]
+  ],
+  "runners": [
+   "RUSSIA",
+   "PHILIPPINES",
+   "MOZAMBIQUE",
+   "NORTH MACEDONIA",
+   "GEORGIA",
+   "MALI",
+   "SEYCHELLES",
+   "UZBEKISTAN",
+   "LIBERIA",
+   "MONACO",
+   "CANADA",
+   "IRAN",
+   "DJIBOUTI",
+   "LEBANON",
+   "IRAQ",
+   "COLOMBIA",
+   "SAINT KITTS & NEVIS",
+   "NEW ZEALAND",
+   "TRINIDAD & TOBAGO",
+   "EQUATORIAL GUINEA",
+   "TUNISIA",
+   "LESOTHO",
+   "COMOROS",
+   "NETHERLANDS",
+   "TOGO",
+   "SIERRA LEONE",
+   "USA",
+   "LITHUANIA",
+   "CROATIA",
+   "CAMBODIA",
+   "LAOS",
+   "JAMAICA"
+  ],
+  "format": "factory"
+ },
+ {
+  "video_id": "nI4sF1XeUNA",
+  "kind": "short",
+  "title": "Find Your Country! Will It Escape the Black Hole? 🚀 #shorts",
+  "source_file": "factory_short_202611284.mp4",
+  "published": "2026-11-28T20:00:00Z",
+  "style": "factory",
+  "world": "space",
+  "character": "flags",
+  "winner": "KENYA",
+  "eliminated": [
+   [
+    "MARSHALL ISLANDS",
+    "LEVEL 1"
+   ],
+   [
+    "COSTA RICA",
+    "LEVEL 1"
+   ],
+   [
+    "SRI LANKA",
+    "LEVEL 1"
+   ],
+   [
+    "BELGIUM",
+    "LEVEL 1"
+   ],
+   [
+    "NORTH KOREA",
+    "LEVEL 1"
+   ],
+   [
+    "NICARAGUA",
+    "LEVEL 1"
+   ],
+   [
+    "FIJI",
+    "LEVEL 1"
+   ],
+   [
+    "GRENADA",
+    "LEVEL 1"
+   ],
+   [
+    "KOSOVO",
+    "LEVEL 1"
+   ],
+   [
+    "CHILE",
+    "LEVEL 1"
+   ],
+   [
+    "PARAGUAY",
+    "LEVEL 1"
+   ],
+   [
+    "MOROCCO",
+    "LEVEL 1"
+   ],
+   [
+    "NORTH MACEDONIA",
+    "LEVEL 1"
+   ],
+   [
+    "OMAN",
+    "LEVEL 1"
+   ],
+   [
+    "HUNGARY",
+    "LEVEL 1"
+   ],
+   [
+    "KUWAIT",
+    "LEVEL 1"
+   ],
+   [
+    "BELARUS",
+    "LEVEL 2"
+   ],
+   [
+    "DENMARK",
+    "LEVEL 2"
+   ],
+   [
+    "NAURU",
+    "LEVEL 2"
+   ],
+   [
+    "BOTSWANA",
+    "LEVEL 2"
+   ],
+   [
+    "RWANDA",
+    "LEVEL 2"
+   ],
+   [
+    "BELIZE",
+    "LEVEL 2"
+   ],
+   [
+    "CUBA",
+    "LEVEL 2"
+   ],
+   [
+    "JAMAICA",
+    "LEVEL 2"
+   ],
+   [
+    "HONDURAS",
+    "LEVEL 3"
+   ],
+   [
+    "ZAMBIA",
+    "LEVEL 3"
+   ],
+   [
+    "FRANCE",
+    "LEVEL 3"
+   ],
+   [
+    "JORDAN",
+    "LEVEL 3"
+   ],
+   [
+    "UK",
+    "LEVEL 4"
+   ],
+   [
+    "MEXICO",
+    "LEVEL 4"
+   ],
+   [
+    "LEBANON",
+    "LEVEL 5"
+   ]
+  ],
+  "runners": [
+   "FRANCE",
+   "FIJI",
+   "KOSOVO",
+   "PARAGUAY",
+   "NORTH MACEDONIA",
+   "JORDAN",
+   "KENYA",
+   "CUBA",
+   "LEBANON",
+   "NAURU",
+   "BELIZE",
+   "BELARUS",
+   "DENMARK",
+   "SRI LANKA",
+   "NORTH KOREA",
+   "CHILE",
+   "HUNGARY",
+   "OMAN",
+   "HONDURAS",
+   "MEXICO",
+   "UK",
+   "RWANDA",
+   "NICARAGUA",
+   "JAMAICA",
+   "GRENADA",
+   "BOTSWANA",
+   "COSTA RICA",
+   "MARSHALL ISLANDS",
+   "BELGIUM",
+   "MOROCCO",
+   "KUWAIT",
+   "ZAMBIA"
+  ],
+  "format": "factory"
  }
 ]
