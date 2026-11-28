@@ -4,7 +4,7 @@
   "kind": "short",
   "published": "2026-11-25T17:00:12Z",
   "stats": {
-   "views": 14,
+   "views": 15,
    "likes": 4,
    "comments": 0
   },
@@ -15,7 +15,7 @@
   "kind": "short",
   "published": "2026-11-25T14:00:12Z",
   "stats": {
-   "views": 1188,
+   "views": 1189,
    "likes": 12,
    "comments": 0
   },
@@ -26,7 +26,7 @@
   "kind": "short",
   "published": "2026-11-25T11:00:28Z",
   "stats": {
-   "views": 1206,
+   "views": 1208,
    "likes": 14,
    "comments": 0
   },
@@ -37,7 +37,7 @@
   "kind": "short",
   "published": "2026-11-25T08:00:15Z",
   "stats": {
-   "views": 1205,
+   "views": 1207,
    "likes": 9,
    "comments": 2
   },
@@ -48,7 +48,7 @@
   "kind": "long",
   "published": "2026-11-24T21:17:23Z",
   "stats": {
-   "views": 51,
+   "views": 52,
    "likes": 4,
    "comments": 0
   },
@@ -59,7 +59,7 @@
   "kind": "short",
   "published": "2026-11-24T21:13:29Z",
   "stats": {
-   "views": 26,
+   "views": 27,
    "likes": 4,
    "comments": 0
   },
@@ -70,7 +70,7 @@
   "kind": "short",
   "published": "2026-11-24T21:13:13Z",
   "stats": {
-   "views": 27,
+   "views": 28,
    "likes": 4,
    "comments": 0
   },
@@ -81,7 +81,7 @@
   "kind": "short",
   "published": "2026-11-24T20:36:41Z",
   "stats": {
-   "views": 1223,
+   "views": 1225,
    "likes": 14,
    "comments": 0
   },
@@ -92,7 +92,7 @@
   "kind": "short",
   "published": "2026-11-24T20:36:05Z",
   "stats": {
-   "views": 1204,
+   "views": 1207,
    "likes": 12,
    "comments": 2
   },
@@ -103,7 +103,7 @@
   "kind": "short",
   "published": "2026-11-24T19:51:50Z",
   "stats": {
-   "views": 1250,
+   "views": 1251,
    "likes": 11,
    "comments": 0
   },
@@ -178,7 +178,7 @@
    "RED"
   ],
   "stats": {
-   "views": 1163,
+   "views": 1168,
    "likes": 8,
    "comments": 0
   }
@@ -225,8 +225,8 @@
    "ORANGE"
   ],
   "stats": {
-   "views": 1127,
-   "likes": 4,
+   "views": 1197,
+   "likes": 5,
    "comments": 0
   }
  },
@@ -262,8 +262,8 @@
    "YELLOW"
   ],
   "stats": {
-   "views": 1090,
-   "likes": 8,
+   "views": 1097,
+   "likes": 9,
    "comments": 0
   }
  },
@@ -1307,8 +1307,8 @@
    "CANADA"
   ],
   "stats": {
-   "views": 18,
-   "likes": 3,
+   "views": 49,
+   "likes": 4,
    "comments": 0
   }
  },
@@ -2306,7 +2306,7 @@
    "URUGUAY"
   ],
   "stats": {
-   "views": 4,
+   "views": 40,
    "likes": 2,
    "comments": 0
   }
@@ -2349,7 +2349,7 @@
    "GREEN"
   ],
   "stats": {
-   "views": 1208,
+   "views": 1211,
    "likes": 9,
    "comments": 0
   }
@@ -2525,7 +2525,7 @@
   ],
   "format": "factory",
   "stats": {
-   "views": 1058,
+   "views": 1109,
    "likes": 4,
    "comments": 0
   }
@@ -2701,8 +2701,8 @@
   ],
   "format": "factory",
   "stats": {
-   "views": 284,
-   "likes": 8,
+   "views": 932,
+   "likes": 11,
    "comments": 0
   }
  },
@@ -2744,7 +2744,7 @@
    "WHITE"
   ],
   "stats": {
-   "views": 3,
+   "views": 5,
    "likes": 2,
    "comments": 0
   }
@@ -2920,8 +2920,8 @@
   ],
   "format": "factory",
   "stats": {
-   "views": 3,
-   "likes": 2,
+   "views": 8,
+   "likes": 3,
    "comments": 0
   }
  },
@@ -2929,7 +2929,7 @@
   "video_id": "fRzHz4-mv6c",
   "kind": "long",
   "title": "ALL 197 COUNTRIES in the Ice Cave — Only ONE Survives! 🌍🧊",
-  "published": "2026-11-28T15:00:00Z",
+  "published": "2026-11-28T07:55:29Z",
   "format": "factory",
   "style": "factory-long",
   "world": "ice",
@@ -3918,13 +3918,18 @@
    "ITALY",
    "VENEZUELA",
    "RUSSIA"
-  ]
+  ],
+  "stats": {
+   "views": 0,
+   "likes": 0,
+   "comments": 0
+  }
  },
  {
   "video_id": "I-uL_GxyDeo",
   "kind": "long",
   "title": "197 Countries vs the Piranha River… Who Wins? 🏆",
-  "published": "2026-11-28T19:00:00Z",
+  "published": "2026-11-28T07:55:35Z",
   "format": "factory",
   "style": "factory-long",
   "world": "jungle",
@@ -4913,13 +4918,18 @@
    "LAOS",
    "TURKEY",
    "GUATEMALA"
-  ]
+  ],
+  "stats": {
+   "views": 0,
+   "likes": 0,
+   "comments": 0
+  }
  },
  {
   "video_id": "2Fpum81W6UE",
   "kind": "short",
   "title": "32 Countries Enter the Candy Factory, Only ONE Survives! 🌍 #shorts",
-  "published": "2026-11-28T07:49:04.385960+00:00",
+  "published": "2026-11-28T07:56:14Z",
   "style": "2d",
   "world": "candy",
   "character": "flags",
@@ -5084,6 +5094,11 @@
    "FIJI",
    "THAILAND"
   ],
-  "format": "factory"
+  "format": "factory",
+  "stats": {
+   "views": 20,
+   "likes": 0,
+   "comments": 0
+  }
  }
 ]
