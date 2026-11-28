@@ -1,0 +1,65 @@
+name: upload-pending
+
+# Uploads the videos a daily run rendered but could not upload (YouTube daily quota / upload limit).
+# Actions -> upload-pending -> Run workflow. Leave run_id empty to use the latest daily-shorts run.
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "daily-shorts run id (empty = latest)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: agent-memory
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Find the daily run
+        id: run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.run_id }}
+        run: |
+          if [ -z "$RUN_ID" ]; then
+            RUN_ID=$(gh api "repos/${{ github.repository }}/actions/workflows/daily.yml/runs?status=completed&per_page=1" --jq '.workflow_runs[0].id')
+          fi
+          echo "id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "using daily run $RUN_ID"
+      - uses: actions/download-artifact@v4
+        with:
+          name: shorts-${{ steps.run.outputs.id }}
+          path: pending
+          run-id: ${{ steps.run.outputs.id }}
+          github-token: ${{ github.token }}
+      - name: Upload the waiting videos
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          QUOTA_UNITS: ${{ vars.QUOTA_UNITS || '10000' }}
+        run: python upload_pending.py pending
+      - name: Save agent memory
+        if: always()
+        run: |
+          git config user.name "color-race-agent"
+          git config user.email "agent@users.noreply.github.com"
+          git add data || true
+          git commit -m "agent memory: pending uploads $(date -u +%F)" || echo "nothing to save"
+          git pull --rebase --autostash || true
+          git push || echo "push failed"

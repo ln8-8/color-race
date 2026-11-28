@@ -237,12 +237,23 @@ def main():
                 tags = LONG_FACTORY_TAGS + [meta["place"].lower()]
                 extra = {"format": "factory", "style": "factory-long", "world": place, "winner": meta["winner"],
                          "eliminated": meta["eliminated"], "runners": meta["runners"]}
-            entry = {"kind": "long", "title": title, "publish_at": at_time(today, lt, now) or "now", **meta}
+            entry = {"kind": "long", "title": title, "description": desc, "publish_at": at_time(today, lt, now) or "now", **meta}
             jobs.append((0 + j * 0.1, entry, (path, title, desc, tags, at_time(today, lt, now), meta.get("thumbnail")), "long", extra))
         except Exception as e:
             failed += 1
             traceback.print_exc()
             log.append({"kind": "long", "slot": lt, "error": str(e)[:300]})
+
+    # ---- YouTube's daily quota resets at midnight Pacific time. If the previous run already uploaded during
+    # this Pacific day (e.g. it ran late), wait for the reset instead of hitting the quota after 2-3 uploads.
+    if do_upload and jobs and state.get("uploads_done_pt") == brain.pt_today():
+        nxt = dt.datetime.combine(dt.datetime.now(brain.PT).date() + dt.timedelta(days=1), dt.time(0, 3), tzinfo=brain.PT)
+        wait = (nxt - dt.datetime.now(dt.timezone.utc)).total_seconds()
+        if 0 < wait < 3 * 3600:
+            print(f"== today's quota was already used by the previous run - waiting {wait / 60:.0f} min for the "
+                  f"Pacific-midnight reset before uploading", flush=True)
+            import time
+            time.sleep(wait)
 
     # ---- upload: most valuable first (tournament, then Shorts in order); stop at YouTube's daily upload limit
     limit_hit, pending = False, []
@@ -260,6 +271,7 @@ def main():
                 if any(k in str(e) for k in ("uploadLimitExceeded", "exceeded the number of videos", "quotaExceeded")):
                     limit_hit = True
                     print("!! YouTube says this channel reached its upload limit for now - the rest are kept for manual upload")
+                    print("   YouTube said:", str(e)[:300])
                     entry["status"] = "NOT UPLOADED (daily upload limit) - upload by hand from the run's Artifacts"
                     pending.append(entry)
                 else:
